@@ -18,6 +18,7 @@
   environment:
     ANSIBLE_VAULT_PASSWORD:
       from_secret: ANSIBLE_VAULT_PASSWORD
+    DRONE_SHELL: /bin/bash
     HCLOUD_TOKEN:
       from_secret: HCLOUD_TOKEN
     PY_COLORS: '1'
