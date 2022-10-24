@@ -1,7 +1,7 @@
 
 .AnsibleTestingAnsibleLint: &AnsibleTestingAnsibleLint
   name: ansible-lint
-  image: ghcr.io/schmitzis/molecule:lint
+  image: gitea.msqu.de/devops/molecule:lint
   pull: always
   environment:
     DRONE_SHELL: /bin/bash
@@ -12,7 +12,7 @@
 
 .AnsibleTestingShellcheck: &AnsibleTestingShellcheck
   name: shellcheck
-  image: ghcr.io/schmitzis/molecule:lint
+  image: gitea.msqu.de/devops/molecule:lint
   pull: always
   environment:
     DRONE_SHELL: /bin/bash
@@ -26,7 +26,7 @@
 
 .AnsibleTestingYamllint: &AnsibleTestingYamllint
   name: yamllint
-  image: ghcr.io/schmitzis/molecule:lint
+  image: gitea.msqu.de/devops/molecule:lint
   pull: always
   environment:
     DRONE_SHELL: /bin/bash

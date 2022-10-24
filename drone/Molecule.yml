@@ -15,7 +15,7 @@
 
 .Molecule: &Molecule
   name: molecule
-  image: ghcr.io/schmitzis/molecule:ansible
+  image: gitea.msqu.de/devops/molecule:ansible
   pull: always
   environment:
     ANSIBLE_VAULT_PASSWORD:
