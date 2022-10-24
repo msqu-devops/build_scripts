@@ -7,14 +7,10 @@
   name: trigger
   image: plugins/git
   commands:
-    - echo ${DRONE_COMMIT_BRANCH:-master}
-    - echo ${DRONE_COMMIT_SHA}~
     - test $DRONE_BUILD_EVENT = pull_request
       && DIFF_STRING=origin/${DRONE_COMMIT_BRANCH:-master}
-      || DIFF_STRING=${DRONE_COMMIT_SHA}~
-    - git --no-pager diff --name-only $DIFF_STRING
-      | grep -q -e ^[.]drone[.] -e ^[.]ansible-lint$ -e ^[.]yamllint$ -e ^Makefile$ -e [.]c$
-      || exit 78
+      || DIFF_STRING=${DRONE_COMMIT_SHA}
+    - git --no-pager diff --name-only $DIFF_STRING | grep -q -e ^.drone.yml$ -e ^.ansible-lint$ -e ^.yamllint$ -e ^Makefile$ || exit 78
 
 .Molecule: &Molecule
   name: molecule
