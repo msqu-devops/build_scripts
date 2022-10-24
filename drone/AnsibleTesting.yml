@@ -1,0 +1,33 @@
+
+.AnsibleTestingAnsibleLint: &AnsibleTestingAnsibleLint
+  name: ansible-lint
+  image: registry.msqu.de/molecule:lint
+  image_pull_secrets:
+    - DOCKER_AUTH_CONFIG
+  commands:
+    - &AnsibleTestingAnsibleLintCommands |
+      ansible-lint --version
+      ansible-lint --force-color -p --offline $DRONE_WORKSPACE_BASE
+
+.AnsibleTestingShellcheck: &AnsibleTestingShellcheck
+  name: shellcheck
+  image: registry.msqu.de/molecule:lint
+  image_pull_secrets:
+    - DOCKER_AUTH_CONFIG
+  commands:
+    - &AnsibleTestingShellcheckCommands |
+      shellcheck --version
+      # anything ending on .*sh, should be shell script
+      find . -name .git -type d -prune -o -type f -name \*.\*sh -print0 | xargs -0 -P $(nproc) -r -n1 shellcheck --color=always --format=gcc -x
+      # magic, any file with a valid shebang should be scanned aswell
+      find . -name .git -type d -prune -o -type f -regex '.*/[^.]*$' -print0 | xargs -0 -P $(nproc) -r -n1 sh -c 'FILE="$0"; if head -n1 "$FILE" |grep -q "^#\\! \?/.\+\(ba|d|k\)\?sh" ; then shellcheck "$FILE" --color=always --format=gcc -x ; else /bin/true ; fi '
+
+.AnsibleTestingYamllint: &AnsibleTestingYamllint
+  name: yamllint
+  image: registry.msqu.de/molecule:lint
+  image_pull_secrets:
+    - DOCKER_AUTH_CONFIG
+  commands:
+    - &AnsibleTestingYamllintCommands |
+      yamllint --version
+      yamllint -f colored $DRONE_WORKSPACE_BASE

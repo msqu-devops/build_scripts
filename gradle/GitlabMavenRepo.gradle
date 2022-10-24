@@ -1,0 +1,43 @@
+def addGitlabGroupRepository(RepositoryHandler handler, String groupName, String groupId) {
+    handler.maven {
+        name "Gitlab Group - $groupName"
+        url = "${gitlabCiApiUrl}/groups/${groupId}/-/packages/maven"
+        setGitlabRepoAuth(it)
+    }
+}
+
+def addGitlabPublishingRepository(RepositoryHandler handler) {
+    handler.maven {
+        name = "Gitlab_Project"
+        url = "${gitlabCiApiUrl}/projects/${gitlabCiProjectId}/packages/maven"
+        setGitlabRepoAuth(it)
+    }
+}
+
+def setGitlabRepoAuth(MavenArtifactRepository maven) {
+    if (System.getenv("CI_JOB_TOKEN") != null) {
+        maven.credentials(HttpHeaderCredentials) {
+            name = 'Job-Token'
+            value = System.getenv("CI_JOB_TOKEN")
+        }
+    } else if (gitlabPrivateToken != null) {
+        maven.credentials(HttpHeaderCredentials) {
+            name = 'Private-Token'
+            value = gitlabPrivateToken
+        }
+
+    } else {
+        throw Exception("No gitlab maven repository auth configured")
+    }
+
+    maven.authentication {
+        header(HttpHeaderAuthentication)
+    }
+}
+
+// Export methods by turning them into closures
+ext {
+    setGitlabRepoAuth = this.&setGitlabRepoAuth
+    addGitlabPublishingRepository = this.&addGitlabPublishingRepository
+    addGitlabGroupRepository = this.&addGitlabGroupRepository
+}

@@ -1,0 +1,90 @@
+.HelmChartLint: &HelmChartLint
+
+  image: alpine/helm:3.10.0
+  
+  variables:
+    CHART_PATH: "$CI_PROJECT_DIR/chart/"
+  
+  script:
+    - cd "$CHART_PATH"
+    - helm lint .
+
+.HelmChartPublish: &HelmChartPublish
+
+  image: alpine/helm:3.10.0
+  
+  variables:
+    HELM_STABLE_ENDPOINT: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/helm/stable"
+    HELM_DEVEL_ENDPOINT: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/helm/devel"
+    CHART_PATH: "$CI_PROJECT_DIR/chart/"
+    HELM_REPO_NAME: "$CI_PROJECT_NAME"
+    GITLAB_HELM_REPO_AUTH: "true"
+
+    TAG_COMMIT_ENABLE: "true"
+    TAG_COMMIT_BASE_VERSION: "0.0.0"
+    TAG_COMMIT_PREFIX: "commit-"
+
+    TAG_REF_SLUG_ENABLE: "true"
+    TAG_REF_SLUG_BASE_VERSION: "0.0.0"
+    
+  before_script:
+    # install chartmuseum plugin
+    - helm plugin install https://github.com/chartmuseum/helm-push
+    - |
+      if [[ "$GITLAB_HELM_REPO_AUTH" == "true" ]]; then
+        helm repo add --username="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "$HELM_REPO_NAME" $HELM_STABLE_ENDPOINT
+      fi
+
+  script:
+    - cd "$CHART_PATH"
+    - helm package .
+
+    # default tag based on commit
+    - |
+      if [[ "$IMAGE_COMMIT_ENABLE" == "true" ]]; then
+        helm cm-push . "$HELM_REPO_NAME" --version=$TAG_COMMIT_BASE_VERSION-$IMAGE_COMMIT_PREFIX-$CI_COMMIT_SHA
+      fi
+
+    # add tag for reference if available
+    - |
+      if [[ "$IMAGE_REF_SLUG_ENABLE" == "true" ]] && [[ ! -z $CI_COMMIT_REF_NAME ]]; then
+        if [[ ! -z "CI_COMMIT_TAG" ]]; then
+          # special handling for tags: strip leading "v" character if present to allow tags with or without leading "v" to work
+          helm cm-push . "$HELM_REPO_NAME" --version="${CI_COMMIT_TAG#"v"}"
+        else
+          helm cm-push . "$HELM_REPO_NAME" --version=$TAG_REF_SLUG_BASE_VERSION-$CI_COMMIT_REF_SLUG
+        fi
+      fi
+
+.HelmReleaseTag: &HelmReleaseTag
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+
+  only:
+  - tags
+
+  variables:
+    HELM_STABLE_ENDPOINT: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/helm/stable"
+    HELM_DEVEL_ENDPOINT: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/helm/devel"
+    CHART_PATH: "$CI_PROJECT_DIR/chart/"
+    HELM_REPO_NAME: "$CI_PROJECT_NAME"
+
+  before_script:
+    - CHART_NAME=$(cat Chart.yaml  | grep "^name") # extract name from Chart.yaml
+    - CHART_NAME="${CHART_NAME#"name:"}" # strip prefix
+    - CHART_NAME="$(echo $CHART_NAME | xargs)" # trim whitespace
+
+  script:
+    - echo "Running the release job."
+  
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: |
+      helm repo add --username <username> --password <access_token> $HELM_REPO_NAME $HELM_STABLE_ENDPOINT
+      helm install <release-name> $HELM_REPO_NAME/$CHART_NAME --version "${CI_COMMIT_TAG#"v"}"
+    tag_name: '$CI_COMMIT_TAG'
+    assets:
+      links:
+        - name: "Helm Charts"
+          # name: "Helm Chart $CI_COMMIT_TAG"
+          # TODO find a way to link directly to the package created
+          url: $CI_PROJECT_URL/-/packages/?type=Helm&orderBy=created_at&sort=desc&search[]=

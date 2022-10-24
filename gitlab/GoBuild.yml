@@ -1,0 +1,71 @@
+
+.GoBuild:
+  image: golang:1.19-buster # don't use alpine because of musl libc
+
+  variables:
+    BINARY_NAME: "$CI_PROJECT_NAME"
+    BINARY_DIR: "$CI_PROJECT_DIR/dist"
+
+    EXTRA_GO_BUILD_ARGS: ""
+    EXTRA_LD_FLAGS: ""
+    LD_FLAGS: "-s -w"
+    USE_UPX: "true"
+
+    GO_VERSION_VARIABLE: "" # package.variable to set to CI_COMMIT_REF_NAME
+    GO_VERSION_INFO_VARIABLE: "" # package.variable to set to additional data about release
+
+    PACKAGE_COMMIT_ENABLE: "true"
+    PACKAGE_COMMIT_PREFIX: "commit-"
+
+    PACKAGE_REF_SLUG_ENABLE: "true"
+
+    RUN_BINARY: "false"
+    RUN_BINARY_WITH_ARGUMENTS: ""
+
+  before_script:
+    - apt update
+    - apt install -y curl upx-ucl
+
+  script:
+    # set a default for the BINARY_NAME to allow job to run in local gitlab-runner when testing
+    - if [[ ! -z "$BINARY_NAME" ]]; then BINARY_NAME="app"; fi
+
+    # prepare build args
+    - |
+      if [[ ! -z "GO_VERSION_VARIABLE" ]]; then
+        LD_FLAGS="$LD_FLAGS -X '$GO_VERSION_VARIABLE=$CI_COMMIT_REF_NAME'"
+      fi
+      if [[ ! -z "GO_VERSION_INFO_VARIABLE" ]]; then
+        LD_FLAGS="$LD_FLAGS -X '$GO_VERSION_INFO_VARIABLE=ref: $CI_COMMIT_REF_NAME commit: $CI_COMMIT_SHA'"
+      fi
+
+    # build
+    - go build -ldflags="$LD_FLAGS $EXTRA_LD_FLAGS" -o "$BINARY_DIR/$BINARY_NAME" $EXTRA_GO_BUILD_ARGS ./main.go
+
+    # run UPX to compress binary if enabled
+    - if [[ "$USE_UPX" == true ]]; then upx $BINARY_DIR/$BINARY_NAME; fi
+
+    # test run binary
+    - |
+      if [[ "$RUN_BINARY" == "true" ]]; then
+        $BINARY_DIR/$BINARY_NAME $RUN_BINARY_WITH_ARGUMENTS
+        RC=$?
+      fi
+
+    # publish package for commit
+    - |
+      if [[ "$PACKAGE_COMMIT_ENABLE" == "true" ]] && [[ ! -z "$CI_API_V4_URL" ]]; then
+        curl \
+          --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+          --upload-file $BINARY_DIR/$BINARY_NAME \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$BINARY_NAME/$IMAGE_COMMIT_PREFIX-$CI_COMMIT_SHA/$BINARY_NAME"
+      fi
+
+    # publish package for commit ref slug
+    - |
+      if [[ "$PACKAGE_REF_SLUG_ENABLE" == "true" ]] && [[ ! -z "$CI_API_V4_URL" ]]; then
+        curl \
+          --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+          --upload-file $BINARY_DIR/$BINARY_NAME \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$BINARY_NAME/$CI_COMMIT_REF_SLUG/$BINARY_NAME"
+      fi
