@@ -6,6 +6,7 @@
 .GitChanged: &GitChanged
   name: trigger
   image: plugins/git
+  pull: always
   commands:
     - test $DRONE_BUILD_EVENT = pull_request
       && DIFF_STRING=origin/${DRONE_COMMIT_BRANCH:-master}
@@ -15,6 +16,7 @@
 .Molecule: &Molecule
   name: molecule
   image: ghcr.io/schmitzis/molecule:ansible
+  pull: always
   environment:
     ANSIBLE_VAULT_PASSWORD:
       from_secret: ANSIBLE_VAULT_PASSWORD

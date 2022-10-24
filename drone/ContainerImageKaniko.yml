@@ -2,7 +2,7 @@
 .ContainerImageKaniko: &ContainerImageKaniko
   name: ContainerImageKaniko
   image: ghcr.io/schmitzis/kaniko:latest
-
+  pull: always
   environment:
     KANIKO_ARGS: ""
     TAG_PREFIX: ""

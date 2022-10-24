@@ -1,7 +1,7 @@
 .HelmChartLint: &HelmChartLint
   name: HelmChartLint
   image: alpine/helm:3.10.0
-
+  pull: always
   environment:
     CHART_PATH: "./chart"
 
@@ -13,7 +13,7 @@
 .HelmChartPublish: &HelmChartPublish
   name: HelmChartPublish
   image: alpine/helm:3.10.0
-
+  pull: always
   environment:
     HELM_REPO_NAME: "" # defaults to project name
     HELM_ENDPOINT: "" # defaults to gitea organization helm registry if running in gitea
