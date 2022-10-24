@@ -1,9 +1,7 @@
 
 .AnsibleTestingAnsibleLint: &AnsibleTestingAnsibleLint
   name: ansible-lint
-  image: registry.msqu.de/molecule:lint
-  image_pull_secrets:
-    - DOCKER_AUTH_CONFIG
+  image: gitea.msqu.de/devops/molecule:lint
   commands:
     - &AnsibleTestingAnsibleLintCommands |
       ansible-lint --version
@@ -11,9 +9,7 @@
 
 .AnsibleTestingShellcheck: &AnsibleTestingShellcheck
   name: shellcheck
-  image: registry.msqu.de/molecule:lint
-  image_pull_secrets:
-    - DOCKER_AUTH_CONFIG
+  image: gitea.msqu.de/devops/molecule:lint
   commands:
     - &AnsibleTestingShellcheckCommands |
       shellcheck --version
@@ -24,9 +20,7 @@
 
 .AnsibleTestingYamllint: &AnsibleTestingYamllint
   name: yamllint
-  image: registry.msqu.de/molecule:lint
-  image_pull_secrets:
-    - DOCKER_AUTH_CONFIG
+  image: gitea.msqu.de/devops/molecule:lint
   commands:
     - &AnsibleTestingYamllintCommands |
       yamllint --version

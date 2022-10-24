@@ -14,9 +14,7 @@
 
 .Molecule: &Molecule
   name: molecule
-  image:  registry.msqu.de/molecule:ansible
-  image_pull_secrets:
-    - DOCKER_AUTH_CONFIG
+  image: gitea.msqu.de/devops/molecule:ansible
   environment:
     ANSIBLE_VAULT_PASSWORD:
       from_secret: ANSIBLE_VAULT_PASSWORD
