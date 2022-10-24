@@ -1,0 +1,146 @@
+
+.ContainerImageKaniko: &ContainerImageKaniko
+  name: ContainerImageKaniko
+  image: gcr.io/kaniko-project/executor:debug
+  #image: gitea.dhswt.de/dhswt/kaniko:master
+
+  environment:
+    KANIKO_ARGS: ""
+    TAG_PREFIX: ""
+    TAG_SUFFIX: ""
+    TAG_COMMIT_ENABLE: "true"
+    TAG_COMMIT_PREFIX: "commit-"
+    TAG_REF_SLUG_ENABLE: "false"
+    TAG_REF_NORMALIZED_ENABLE: "true"
+    TAG_SEMVER_MAJOR: "true"
+    TAG_SEMVER_MINOR: "true"
+    TAG_SEMVER_PATCH: "true"
+    ADDITIONAL_REGISTRY_DESTINATIONS: "" #  a list of --destination registry/orga/repo:tag strings, space separated"
+    KANIKO_SINGLE_SNAPSHOT: "true"
+    ADDITIONAL_REGISTRIES: ""
+    ADD_CI_REGISTRY_AUTH: "true"
+    ADD_CI_REGISTRY_TARGET: "true"
+    REGISTRY_AUTH_JSON: ""
+    MERGE_REGISTRY_JSON: "true"
+
+  commands:
+    - &ContainerImageKanikoCommands |
+
+      _OLD_IFS="$IFS"
+      REGISTRY_TARGETS=""
+
+      # add default registry as target
+      if [[ "$ADD_CI_REGISTRY_TARGET" == "true" ]]; then
+        REGISTRY_TARGETS="$CI_REGISTRY_IMAGE:"
+      fi
+
+      # prepare additional registry targets
+      IFS=","
+      for REGISTRY in $ADDITIONAL_REGISTRIES; do
+        # add ":" to registry paths missing it
+        if [[ "$REGISTRY" != *":"* ]]; then
+          REGISTRY="$REGISTRY:"
+        fi
+
+        REGISTRY_TARGETS="$REGISTRY_TARGETS,$REGISTRY"
+      done
+      IFS="$OLD_IFS"
+
+      # drone does not support expanding vars in environment values, set defaults via bash
+      if [[ -z "$CONTEXT_DIR" ]]; then CONTEXT_DIR="$DRONE_WORKSPACE_BASE"; fi
+      if [[ -z "$DOCKERFILE" ]]; then DOCKERFILE="$DRONE_WORKSPACE_BASE/Dockerfile"; fi
+
+      # add gitlab registry auth
+      if [[ "$ADD_CI_REGISTRY_AUTH" == "true" ]]; then
+        REGISTRY_AUTH_JSON="$REGISTRY_AUTH_JSON {\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n token:$CI_REGISTRY_PASSWORD | base64)\"}}}"
+      fi
+
+      # merge registry auth
+      if [[ "$MERGE_REGISTRY_JSON" == "true" ]] && [[ ! -z "$REGISTRY_AUTH_JSON" ]]; then
+        wget -O /bin/jq https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+        chmod +x /bin/jq
+        REGISTRY_AUTH_JSON=$(echo "$REGISTRY_AUTH_JSON" | /bin/jq --slurp 'reduce .[] as $item ({}; . * $item)')
+      fi
+
+      # create registry auth file
+      if [[ ! -z "$REGISTRY_AUTH_JSON" ]]; then
+        mkdir -p /kaniko/.docker
+        echo "$REGISTRY_AUTH_JSON" > /kaniko/.docker/config.json
+      fi
+
+      IMAGE_TAGS=""
+
+      # default tag based on commit
+      if [[ "$TAG_COMMIT_ENABLE" == "true" ]]; then
+        echo "adding commit tag"
+        IMAGE_TAGS="$IMAGE_TAGS,$TAG_PREFIX$TAG_COMMIT_PREFIX$CI_COMMIT_SHA$TAG_SUFFIX"
+      fi
+
+      # add semver major tag              if enabled and available, exclude "0"     tag
+      # add semver major.minor tag        if enabled and available, exclude "0.0"   tag
+      # add semver major.minor.patch tag  if enabled and available, exclude "0.0.0" tag
+      if [[ "$TAG_SEMVER_MAJOR" == "true" ]] && [[ ! -z $SEMVER_MAJOR ]] && [[ "$SEMVER_MAJOR" != "0" ]]; then
+        IMAGE_TAGS="$IMAGE_TAGS,$TAG_PREFIX$SEMVER_MAJOR"
+        TAG_REF_NORMALIZED_ENABLE=0
+      fi
+      if [[ "$TAG_SEMVER_MINOR" == "true" ]] && [[ ! -z $SEMVER_MINOR ]] && [[ "$SEMVER_MAJOR_MINOR" != "0.0" ]]; then
+        IMAGE_TAGS="$IMAGE_TAGS,$TAG_PREFIX$SEMVER_MAJOR_MINOR"
+        TAG_REF_NORMALIZED_ENABLE=0
+      fi
+      if [[ "$TAG_SEMVER_PATCH" == "true" ]] && [[ ! -z $SEMVER_PATCH ]] && [[ "$SEMVER_MAJOR_MINOR_PATCH" != "0.0.0" ]]; then
+        IMAGE_TAGS="$IMAGE_TAGS,$TAG_PREFIX$SEMVER_MAJOR_MINOR_PATCH"
+        TAG_REF_NORMALIZED_ENABLE=0
+      fi
+
+      # add tag for reference if available using normalization
+      # - dont add tag if semver tags were added
+      # - attempt to build tag first
+      # - attempt to build branch if not a PR (if not PR for extra security, variable description on drone unclear)
+      echo "TAG_REF_NORMALIZED_ENABLE=$TAG_REF_NORMALIZED_ENABLE"
+      if [[ "$TAG_REF_NORMALIZED_ENABLE" == "true" ]] && [[ ! -z $DRONE_TAG ]]; then
+        echo "adding tag for tag"
+        REF_TAG_NORMALIZED=$(echo $DRONE_TAG | sed s:/:-:g)
+        IMAGE_TAGS="$IMAGE_TAGS,$TAG_PREFIX$REF_TAG_NORMALIZED$TAG_SUFFIX"
+      elif [[ "$TAG_REF_NORMALIZED_ENABLE" == "true" ]] && [[ -z "$DRONE_PULL_REQUEST" ]] && [[ ! -z $DRONE_BRANCH ]]; then
+        echo "adding tag for branch"
+        REF_TAG_NORMALIZED=$(echo $DRONE_BRANCH | sed s:/:-:g)
+        IMAGE_TAGS="$IMAGE_TAGS,$TAG_PREFIX$REF_TAG_NORMALIZED$TAG_SUFFIX"
+      fi
+
+      # prepare destinations by combining registries + tags
+      echo "# preparing destinations:"
+      IMAGE_DESTS=""
+      IFS=","
+      for REGISTRY in $REGISTRY_TARGETS; do
+        if [[ -z "$REGISTRY" ]]; then continue; fi
+
+        for IMAGE_TAG in $IMAGE_TAGS; do
+          if [[ -z "$IMAGE_TAG" ]]; then continue; fi
+          echo "- $REGISTRY$IMAGE_TAG"
+          IMAGE_DESTS="$IMAGE_DESTS --destination $REGISTRY$IMAGE_TAG"
+        done
+      done
+      IMAGE_DESTS=$(echo $IMAGE_DESTS | xargs)
+      IFS="$OLD_IFS"
+
+      # prepare kaniko args
+      if [[ -z "$KANIKO_ARGS" ]]; then
+        KANIKO_ARGS=""
+      fi
+      KANIKO_ARGS="--context $CONTEXT_DIR --dockerfile $DOCKERFILE $KANIKO_ARGS"
+
+      if [[ "$KANIKO_SINGLE_SNAPSHOT" == "true" ]]; then
+        KANIKO_ARGS="$KANIKO_ARGS --single-snapshot"
+      fi
+      if [[ -z "$IMAGE_DESTS" ]]; then
+        KANIKO_ARGS="$KANIKO_ARGS $IMAGE_DESTS"
+      fi
+      if [[ -z "$ADDITIONAL_REGISTRY_DESTINATIONS" ]]; then
+        KANIKO_ARGS="$KANIKO_ARGS $ADDITIONAL_REGISTRY_DESTINATIONS"
+      fi
+
+      # build image
+      echo "# kaniko arguments: "
+      ALL_ARGS="$KANIKO_ARGS $IMAGE_DESTS $ADDITIONAL_REGISTRY_DESTINATIONS"
+      echo "$ALL_ARGS"
+      echo $ALL_ARGS | xargs /kaniko/executor
