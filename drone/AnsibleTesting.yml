@@ -1,7 +1,9 @@
 
 .AnsibleTestingAnsibleLint: &AnsibleTestingAnsibleLint
   name: ansible-lint
-  image: gitea.msqu.de/devops/molecule:lint
+  image: ghcr.io/schmitzis/molecule:lint
+  environment:
+    DRONE_SHELL: /bin/bash
   commands:
     - &AnsibleTestingAnsibleLintCommands |
       ansible-lint --version
@@ -9,7 +11,9 @@
 
 .AnsibleTestingShellcheck: &AnsibleTestingShellcheck
   name: shellcheck
-  image: gitea.msqu.de/devops/molecule:lint
+  image: ghcr.io/schmitzis/molecule:lint
+  environment:
+    DRONE_SHELL: /bin/bash
   commands:
     - &AnsibleTestingShellcheckCommands |
       shellcheck --version
@@ -20,7 +24,9 @@
 
 .AnsibleTestingYamllint: &AnsibleTestingYamllint
   name: yamllint
-  image: gitea.msqu.de/devops/molecule:lint
+  image: ghcr.io/schmitzis/molecule:lint
+  environment:
+    DRONE_SHELL: /bin/bash
   commands:
     - &AnsibleTestingYamllintCommands |
       yamllint --version

@@ -1,10 +1,10 @@
 .HelmChartLint: &HelmChartLint
   name: HelmChartLint
   image: alpine/helm:3.10.0
-  
+
   environment:
     CHART_PATH: "./chart"
-    
+
   commands:
     - |
       cd "$CHART_PATH"
@@ -13,7 +13,7 @@
 .HelmChartPublish: &HelmChartPublish
   name: HelmChartPublish
   image: alpine/helm:3.10.0
-  
+
   environment:
     HELM_REPO_NAME: "" # defaults to project name
     HELM_ENDPOINT: "" # defaults to gitea organization helm registry if running in gitea
@@ -28,7 +28,7 @@
 
     TAG_REF_SLUG_ENABLE: "true"
     TAG_REF_SLUG_BASE_VERSION: "0.0.0"
-    
+
   commands:
     # drone does not support expanding vars in environment values, set defaults via bash
     - if [[ -z "$HELM_REPO_NAME" ]]; then HELM_REPO_NAME=$CI_PROJECT_NAME; fi
@@ -45,7 +45,7 @@
           exit 1
         fi
       fi
-    
+
     # install plugin chartmuseum/helm-push
     - helm plugin install https://github.com/chartmuseum/helm-push
 
@@ -61,7 +61,7 @@
       if [[ "$GITLAB_HELM_REPO_AUTH" == "true" ]]; then
         helm repo add --username="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "$HELM_REPO_NAME" $HELM_STABLE_ENDPOINT
       fi
-    
+
     # default tag based on commit
     - |
       if [[ "$TAG_COMMIT_ENABLE" == "true" ]]; then

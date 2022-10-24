@@ -1,8 +1,8 @@
 
 .ContainerImageKaniko: &ContainerImageKaniko
   name: ContainerImageKaniko
-  image: gcr.io/kaniko-project/executor:debug
-  
+  image: ghcr.io/schmitzis/kaniko:latest
+
   environment:
     KANIKO_ARGS: ""
     TAG_PREFIX: ""
@@ -16,6 +16,7 @@
     TAG_SEMVER_PATCH: "true"
     ADDITIONAL_REGISTRY_DESTINATIONS: ""
     ADD_CI_REGISTRY_AUTH: "true"
+    DRONE_SHELL: /bin/bash
 
   commands:
     - &ContainerImageKanikoCommands |

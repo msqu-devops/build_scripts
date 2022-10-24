@@ -14,7 +14,7 @@
 
 .Molecule: &Molecule
   name: molecule
-  image: gitea.msqu.de/devops/molecule:ansible
+  image: ghcr.io/schmitzis/molecule:ansible
   environment:
     ANSIBLE_VAULT_PASSWORD:
       from_secret: ANSIBLE_VAULT_PASSWORD
@@ -49,17 +49,6 @@
       cd $CI_PROJECT_DIR
       test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
       test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
-      cat /drone/src/molecule/default/molecule.yml
-      # echo some lines
-      echo $0
-      env
-      echo "hostname is" $CI_HOSTNAME
-      echo "project name is" $CI_PROJECT_NAME_MOLECULE
-      echo "size is" $INSTANCE_SIZE
-      echo "subnet ip is" $RANDOM_SUBNET_IP
-      echo "user is" $USER
-      echo "project dir is" $CI_PROJECT_DIR
-      echo "playbook is" $MOLECULE_PLAYBOOK
       cd $CI_PROJECT_DIR && molecule test  || EXITCODE=$?
       cd $CI_PROJECT_DIR && molecule destroy
       test $EXITCODE -eq 0 && echo "All Fine!" || echo "Something bad happened";
