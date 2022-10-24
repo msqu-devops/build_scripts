@@ -1,13 +1,13 @@
 .GiteaComposerPackage: &GiteaComposerPackage
   name: GiteaComposerPackage
   image: composer:2
-  pull: always
+  
   environment:
     VERSION_COMMIT_ENABLE: "false"
     VERSION_BRANCH_ENABLE: "false"
     VERSION_TAG_ENABLE: "true"
 
-  commands:
+  commands: 
     - &GiteaComposerPackageCommands |
       # drone does not support expanding vars in environment values, set defaults via bash
       if [[ -z "$COMPOSER_PACKAGE_DIR" ]]; then COMPOSER_PACKAGE_DIR=$DRONE_WORKSPACE_BASE; fi
