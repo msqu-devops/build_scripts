@@ -1,0 +1,47 @@
+
+# global variables
+.variables: &global-variables
+  MOLECULE_SCENARIO_NAME: hetznercloud
+
+.Molecule: &Molecule
+  name: molecule
+  image:  registry.msqu.de/molecule:ansible
+  image_pull_secrets:
+    - DOCKER_AUTH_CONFIG
+  environment:
+    ANSIBLE_VAULT_PASSWORD:
+      from_secret: ANSIBLE_VAULT_PASSWORD
+    HCLOUD_TOKEN:
+      from_secret: HCLOUD_TOKEN
+    PY_COLORS: '1'
+    ANSIBLE_FORCE_COLOR: '1'
+  commands:
+    - &MoleculeCommands |
+      EXITCODE=0
+      # set some values
+      export CI_PROJECT_DIR=$DRONE_WORKSPACE_BASE
+      export CI_JOB_ID=$DRONE_BUILD_NUMBER
+      export CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')
+      export CI_PROJECT_NAME_MOLECULE=$(echo $CI_PROJECT_NAME | tr '_' '-')
+      export ANSIBLE_ROOT_REPO=ansible
+      export RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)
+      export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
+      # real action begins here
+      echo $ANSIBLE_VAULT_PASSWORD > $CI_PROJECT_DIR/.vault
+      # get molecule scenarios
+      mkdir -p $CI_PROJECT_DIR/molecule/default
+      cd $HOME
+      git clone --depth 1 https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git
+      rsync -avzh --ignore-existing --ignore-errors molecule/$MOLECULE_SCENARIO_NAME/ $CI_PROJECT_DIR/molecule/default/
+      # get real world variables for integration testing, else modify inventory
+      if [[ "$TEST_TYPE" == "unit" ]]; then yq -i 'del(.provisioner.inventory)' $CI_PROJECT_DIR/molecule/default/molecule.yml; fi
+      if [[ "$TEST_TYPE" == "integration" ]]; then git clone --depth 1 --filter=blob:none --no-checkout https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git; fi
+      if [[ "$TEST_TYPE" == "integration" ]]; then cd infra && git checkout main -- group_vars && rsync -aP --remove-source-files group_vars $CI_PROJECT_DIR; fi
+      # fix requirements.yml URLs + Tokens
+      cd $CI_PROJECT_DIR
+      test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
+      test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
+      cd $CI_PROJECT_DIR && molecule test  || EXITCODE=$?
+      cd $CI_PROJECT_DIR && molecule destroy
+      test $EXITCODE -eq 0 && echo "All Fine!" || echo "Something bad happened";
+      exit $EXITCODE
