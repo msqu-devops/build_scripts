@@ -3,6 +3,17 @@
 .variables: &global-variables
   MOLECULE_SCENARIO_NAME: hetznercloud
 
+.GitChanged: &GitChanged
+  name: trigger
+  image: plugins/git
+  commands:
+    - test $DRONE_BUILD_EVENT = pull_request
+      && DIFF_STRING=origin/${DRONE_COMMIT_BRANCH:-master}
+      || DIFF_STRING=${DRONE_COMMIT_SHA}~
+    - git --no-pager diff --name-only $DIFF_STRING
+      | grep -q -e ^[.]drone[.] -e ^[.]ansible-lint$ -e ^[.]yamllint$ -e ^Makefile$ -e [.]c$
+      || exit 78
+
 .Molecule: &Molecule
   name: molecule
   image:  registry.msqu.de/molecule:ansible
