@@ -24,7 +24,7 @@
     DOCKER_ARGS: ""
     TAG_PREFIX: ""
     TAG_SUFFIX: ""
-    TAG_COMMIT_ENABLE: "true"
+    TAG_COMMIT_ENABLE: "false"
     TAG_COMMIT_PREFIX: "commit-"
     TAG_REF_SLUG_ENABLE: "false"
     TAG_REF_NORMALIZED_ENABLE: "true"
