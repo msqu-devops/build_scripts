@@ -1,7 +1,7 @@
 .ContainerImageKaniko: &ContainerImageKaniko
   name: ContainerImageKaniko
   # image: gcr.io/kaniko-project/executor:debug
-  image: gitea.msqu.de/devops/kaniko/kaniko:master
+  image: gitea.msqu.de/devops/kaniko:master
 
   environment:
     KANIKO_ARGS: ""
