@@ -18,13 +18,15 @@
   image: gitea.msqu.de/devops/molecule:ansible
   pull: always
   environment:
+    ANSIBLE_FORCE_COLOR: '1'
     ANSIBLE_VAULT_PASSWORD:
       from_secret: ANSIBLE_VAULT_PASSWORD
     DRONE_SHELL: /bin/bash
     HCLOUD_TOKEN:
       from_secret: HCLOUD_TOKEN
     PY_COLORS: '1'
-    ANSIBLE_FORCE_COLOR: '1'
+    SSH_PRIVATE_KEY:
+      from_secret: SSH_PRIVATE_KEY
   commands:
     - &MoleculeCommands |
       EXITCODE=0
@@ -36,6 +38,11 @@
       export ANSIBLE_ROOT_REPO=ansible
       export RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)
       export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
+      # Add SSH Key
+      eval $(ssh-agent -s)
+      echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add
+      mkdir -p ~/.ssh
+      echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
       # real action begins here
       echo $ANSIBLE_VAULT_PASSWORD > $CI_PROJECT_DIR/.vault
       # get molecule scenarios
