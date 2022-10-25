@@ -53,9 +53,9 @@
       git clone --depth 1 https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git
       rsync -avzh --ignore-existing --ignore-errors molecule/$MOLECULE_SCENARIO_NAME/ $CI_PROJECT_DIR/molecule/default/
       # tests directory does not exist
-      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" && ! -d "tests" ]]; then yq -i 'del(.provisioner.inventory)' $CI_PROJECT_DIR/molecule/default/molecule.yml; fi
+      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ ! -d "$CI_PROJECT_DIR/tests" ]]; then yq -i 'del(.provisioner.inventory)' $CI_PROJECT_DIR/molecule/default/molecule.yml; fi
       # tests directory exists
-      if [[ "$TEST_TYPE" == "unit" && -d "tests" ]]; then mkdir -p ${CI_PROJECT_DIR}/group_vars/all/ && rsync -aP --remove-source-files ${CI_PROJECT_DIR}/tests/ ${CI_PROJECT_DIR}/group_vars/all/; fi
+      if [[ "$TEST_TYPE" == "unit" && -d "$CI_PROJECT_DIR/tests" ]]; then mkdir -p $CI_PROJECT_DIR/group_vars/all/ && rsync -aP --remove-source-files $CI_PROJECT_DIR/tests/ $CI_PROJECT_DIR/group_vars/all/; fi
       # get real world values
       if [[ "$TEST_TYPE" == "integration" ]]; then git clone --depth 1 --filter=blob:none --no-checkout https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git; fi
       if [[ "$TEST_TYPE" == "integration" ]]; then cd infra && git checkout main -- group_vars && rsync -aP --remove-source-files group_vars $CI_PROJECT_DIR; fi
