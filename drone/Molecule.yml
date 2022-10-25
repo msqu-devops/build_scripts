@@ -41,6 +41,7 @@
       # Add SSH Key
       eval $(ssh-agent -s)
       echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add
+      echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
       mkdir -p ~/.ssh
       echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
       # real action begins here
