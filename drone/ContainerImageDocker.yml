@@ -41,6 +41,7 @@
     DEBUG_STEP: "false"
     PUSH_TAGS: "true"
     DOCKER_WAIT_START_SECONDS: "5"
+    DOCKER_BUILDKIT: 1
 
   commands:
     - &ContainerImageDockerCommands |
