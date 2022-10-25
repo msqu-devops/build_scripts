@@ -22,7 +22,7 @@
     REGISTRY_AUTH_JSON: ""
     MERGE_REGISTRY_JSON: "true"
     DEBUG_STEP: "false"
-
+    DRONE_SHELL: /bin/bash
   commands:
     - &ContainerImageKanikoCommands |
 
