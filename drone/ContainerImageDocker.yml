@@ -1,10 +1,27 @@
-.ContainerImageKaniko: &ContainerImageKaniko
-  name: ContainerImageKaniko
-  # image: gcr.io/kaniko-project/executor:debug
-  image: gitea.msqu.de/devops/kaniko/kaniko:master
+.ContainerImageDockerDinDService: &ContainerImageDockerDinDService
+  name: ContainerImageDockerDinDService
+  image: docker:dind
+  privileged: true
+  volumes:
+  - name: dockersock
+    path: /var/run
+  commands:
+  - dockerd-entrypoint.sh --experimental
+
+.ContainerImageDockerVolume: &ContainerImageDockerVolume
+  name: dockersock
+  temp: {}
+
+.ContainerImageDocker: &ContainerImageDocker
+  name: ContainerImageDocker
+  image: docker:latest
+
+  volumes:
+  - name: dockersock
+    path: /var/run
 
   environment:
-    KANIKO_ARGS: ""
+    DOCKER_ARGS: ""
     TAG_PREFIX: ""
     TAG_SUFFIX: ""
     TAG_COMMIT_ENABLE: "true"
@@ -22,9 +39,11 @@
     REGISTRY_AUTH_JSON: ""
     MERGE_REGISTRY_JSON: "true"
     DEBUG_STEP: "false"
+    PUSH_TAGS: "true"
+    DOCKER_WAIT_START_SECONDS: "5"
 
   commands:
-    - &ContainerImageKanikoCommands |
+    - &ContainerImageDockerCommands |
 
       _OLD_IFS="$IFS"
       REGISTRY_TARGETS=""
@@ -73,6 +92,7 @@
 
       # merge registry auth
       if [[ "$MERGE_REGISTRY_JSON" == "true" ]] && [[ ! -z "$REGISTRY_AUTH_JSON" ]]; then
+        apk add --no-cache jq
         debug_log "merging $REGISTRY_AUTH_JSON"
         REGISTRY_AUTH_JSON=$(echo "$REGISTRY_AUTH_JSON" | jq --slurp 'reduce .[] as $item ({}; . * $item)')
         debug_log "merged $REGISTRY_AUTH_JSON"
@@ -80,8 +100,8 @@
 
       # create registry auth file
       if [[ ! -z "$REGISTRY_AUTH_JSON" ]]; then
-        mkdir -p /kaniko/.docker
-        echo "$REGISTRY_AUTH_JSON" > /kaniko/.docker/config.json
+        mkdir -p /root/.docker
+        echo "$REGISTRY_AUTH_JSON" > /root/.docker/config.json
       fi
 
       debug_log "REGISTRY_AUTH_JSON=$REGISTRY_AUTH_JSON"
@@ -128,6 +148,7 @@
       # prepare destinations by combining registries + tags
       echo "# preparing destinations:"
       IMAGE_DESTS=""
+      IMAGE_DESTS_PUSH=""
       IFS=","
       for REGISTRY in $REGISTRY_TARGETS; do
         if [[ -z "$REGISTRY" ]]; then continue; fi
@@ -135,36 +156,57 @@
         for IMAGE_TAG in $IMAGE_TAGS; do
           if [[ -z "$IMAGE_TAG" ]]; then continue; fi
           echo "- $REGISTRY$IMAGE_TAG"
-          IMAGE_DESTS="$IMAGE_DESTS --destination $REGISTRY$IMAGE_TAG"
+          IMAGE_DESTS="$IMAGE_DESTS --tag $REGISTRY$IMAGE_TAG"
+          IMAGE_DESTS_PUSH="$IMAGE_DESTS_PUSH $REGISTRY$IMAGE_TAG"
         done
       done
       IMAGE_DESTS=$(echo $IMAGE_DESTS | xargs)
+      IMAGE_DESTS_PUSH=$(echo $IMAGE_DESTS_PUSH | xargs)
       IFS="$OLD_IFS"
 
-      # prepare kaniko args
-      if [[ -z "$KANIKO_ARGS" ]]; then
-        KANIKO_ARGS=""
+      # prepare docker build args
+      if [[ -z "$DOCKER_ARGS" ]]; then
+        DOCKER_ARGS=""
       fi
-      KANIKO_ARGS="--context $CONTEXT_DIR --dockerfile $DOCKERFILE $KANIKO_ARGS"
+      DOCKER_ARGS="$CONTEXT_DIR --file $DOCKERFILE $DOCKER_ARGS"
 
       if [[ "$SQUASH_LAYERS" == "true" ]]; then
-        KANIKO_ARGS="$KANIKO_ARGS --single-snapshot"
+        DOCKER_ARGS="$DOCKER_ARGS --squash"
       fi
       if [[ -z "$IMAGE_DESTS" ]]; then
-        KANIKO_ARGS="$KANIKO_ARGS $IMAGE_DESTS"
+        DOCKER_ARGS="$DOCKER_ARGS $IMAGE_DESTS"
       fi
       if [[ -z "$ADDITIONAL_REGISTRY_DESTINATIONS" ]]; then
-        KANIKO_ARGS="$KANIKO_ARGS $ADDITIONAL_REGISTRY_DESTINATIONS"
+        DOCKER_ARGS="$DOCKER_ARGS $ADDITIONAL_REGISTRY_DESTINATIONS"
       fi
 
       # build image
-      echo "# kaniko arguments: "
-      ALL_ARGS="$KANIKO_ARGS $IMAGE_DESTS $ADDITIONAL_REGISTRY_DESTINATIONS"
+      echo "# docker arguments: "
+      ALL_ARGS="$DOCKER_ARGS $IMAGE_DESTS $ADDITIONAL_REGISTRY_DESTINATIONS"
       echo "$ALL_ARGS"
 
       if [[ "$DEBUG_STEP" == "true" ]]; then
-        echo "[debug] env before call to /kaniko/executor"
+        echo "[debug] env before call to docker build"
         env
       fi
 
-      echo $ALL_ARGS | xargs /kaniko/executor
+      # give docker enough time to start
+      sleep $DOCKER_WAIT_START_SECONDS
+
+      # start build
+      echo $ALL_ARGS | xargs docker build
+
+      # push tags
+      if [[ "$PUSH_TAGS" == "true" ]]; then
+        IFS=" "
+        echo "IMAGE_DESTS_PUSH=$IMAGE_DESTS_PUSH"
+        for TAG in $IMAGE_DESTS_PUSH; do
+          if [[ -z "$TAG" ]]; then
+            continue;
+          fi
+
+          echo "# pushing $TAG"
+          docker push $TAG
+        done
+        IFS="$OLD_IFS"
+      fi
