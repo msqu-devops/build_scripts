@@ -38,29 +38,29 @@
       export ANSIBLE_ROOT_REPO=ansible
       export RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)
       export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
-      # Add SSH Key
-      eval $(ssh-agent -s)
-      echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add
-      echo "$SSH_PRIVATE_KEY" > /tmp/molecule_ssh_id_rsa
-      cat /tmp/molecule_ssh_id_rsa
-      mkdir -p ~/.ssh
-      echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
       # real action begins here
       echo $ANSIBLE_VAULT_PASSWORD > $CI_PROJECT_DIR/.vault
+      # Add SSH Key
+      mkdir -p ~/.ssh/
+      echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+      chmod 600 ~/.ssh/id_rsa
+      echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+      eval "$(ssh-agent -s)"
+      echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - >/dev/null
       # get molecule scenarios
       mkdir -p $CI_PROJECT_DIR/molecule/default
       cd $HOME
       git clone --depth 1 https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git
       rsync -avzh --ignore-existing --ignore-errors molecule/$MOLECULE_SCENARIO_NAME/ $CI_PROJECT_DIR/molecule/default/
       # get real world variables for integration testing, else modify inventory
-      if [[ "$TEST_TYPE" == "unit" ]]; then yq -i 'del(.provisioner.inventory)' $CI_PROJECT_DIR/molecule/default/molecule.yml; fi
+      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]]; then yq -i 'del(.provisioner.inventory)' $CI_PROJECT_DIR/molecule/default/molecule.yml; fi
       if [[ "$TEST_TYPE" == "integration" ]]; then git clone --depth 1 --filter=blob:none --no-checkout https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git; fi
       if [[ "$TEST_TYPE" == "integration" ]]; then cd infra && git checkout main -- group_vars && rsync -aP --remove-source-files group_vars $CI_PROJECT_DIR; fi
       # fix requirements.yml URLs + Tokens
       cd $CI_PROJECT_DIR
       test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
       test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
-      cd $CI_PROJECT_DIR && molecule test  || EXITCODE=$?
+      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd $CI_PROJECT_DIR && molecule test || EXITCODE=$?; fi
       cd $CI_PROJECT_DIR && molecule destroy
       test $EXITCODE -eq 0 && echo "All Fine!" || echo "Something bad happened";
       exit $EXITCODE
