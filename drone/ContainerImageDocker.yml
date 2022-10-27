@@ -82,7 +82,7 @@
 
       # drone does not support expanding vars in environment values, set defaults via bash
       if [[ -z "$CONTEXT_DIR" ]]; then CONTEXT_DIR="$DRONE_WORKSPACE_BASE"; fi
-      if [[ -z "$DOCKERFILE" ]]; then DOCKERFILE="$DRONE_WORKSPACE_BASE/Dockerfile"; fi
+      if [[ -z "$DOCKERFILE" ]]; then DOCKERFILE="$CONTEXT_DIR/Dockerfile"; fi
 
       debug_log "CONTEXT_DIR=$CONTEXT_DIR"
       debug_log "DOCKERFILE=$DOCKERFILE"
