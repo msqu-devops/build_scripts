@@ -109,6 +109,12 @@
 
       IMAGE_TAGS=""
 
+      # explicit tags
+      if [[ ! -z "$TAG_EXPLICIT" ]]; then
+        debug_log "adding explicit tag"
+        IMAGE_TAGS="$IMAGE_TAGS,$TAG_EXPLICIT"
+      fi
+
       # default tag based on commit
       if [[ "$TAG_COMMIT_ENABLE" == "true" ]]; then
         debug_log "adding commit tag"
