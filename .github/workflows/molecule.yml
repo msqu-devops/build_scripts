@@ -63,7 +63,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install yq via curl
+      - name: Install yq via wget
         run: sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/bin/yq
 
       - name: Install test dependencies
