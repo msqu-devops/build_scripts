@@ -63,8 +63,11 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Install yq
+        run: apt -y install yq
+
       - name: Install test dependencies
-        run: pip install ansible ansible-lint molecule[docker] docker
+        run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
 
       - name: Set CI_HOSTNAME
         run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
