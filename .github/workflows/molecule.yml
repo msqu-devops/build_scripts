@@ -6,7 +6,7 @@ on:
     secrets:
       ANSIBLE_VAULT_PASSWORD:
         required: true
-      token:
+      ACCESS_TOKEN:
         required: true
 
 jobs:
