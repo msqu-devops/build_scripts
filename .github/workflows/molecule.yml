@@ -64,7 +64,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install yq
-        run: apt -y install yq
+        run: sudo apt-get install -y yq
 
       - name: Install test dependencies
         run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
