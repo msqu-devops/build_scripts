@@ -3,9 +3,6 @@ name: Reusable molecule workflow
 
 on:
   workflow_call:
-    secrets:
-      ANSIBLE_VAULT_PASSWORD:
-        required: true
 
 jobs:
 
