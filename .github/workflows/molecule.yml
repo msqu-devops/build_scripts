@@ -63,8 +63,8 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install yq
-        run: sudo apt-get install -y yq
+      - name: Install yq via curl
+        run: sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/bin/yq
 
       - name: Install test dependencies
         run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
