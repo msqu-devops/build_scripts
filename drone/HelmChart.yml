@@ -1,10 +1,10 @@
 .HelmChartLint: &HelmChartLint
   name: HelmChartLint
   image: alpine/helm:3.10.0
-  
+
   environment:
     CHART_PATH: "./chart"
-    
+
   commands:
     - |
       cd "$CHART_PATH"
@@ -13,7 +13,7 @@
 .HelmChartPublish: &HelmChartPublish
   name: HelmChartPublish
   image: alpine/helm:3.10.0
-  
+
   environment:
     HELM_REPO_NAME: "" # defaults to project name
     HELM_ENDPOINT: "" # defaults to gitea organization helm registry if running in gitea
@@ -22,14 +22,18 @@
 
     CHART_PATH: "./chart"
 
+    TAG_CHART_VERSION_ENABLE: "true"
+
     TAG_COMMIT_ENABLE: "true"
     TAG_COMMIT_BASE_VERSION: "0.0.0"
     TAG_COMMIT_PREFIX: "commit-"
 
     TAG_REF_SLUG_ENABLE: "true"
     TAG_REF_SLUG_BASE_VERSION: "0.0.0"
-    
+
   commands:
+    # install yq
+    - apk add yq
     # drone does not support expanding vars in environment values, set defaults via bash
     - if [[ -z "$HELM_REPO_NAME" ]]; then HELM_REPO_NAME=$CI_PROJECT_NAME; fi
     - if [[ -z "$HELM_USER" ]]; then HELM_USER=$CI_REGISTRY_USER; fi
@@ -45,7 +49,7 @@
           exit 1
         fi
       fi
-    
+
     # install plugin chartmuseum/helm-push
     - helm plugin install https://github.com/chartmuseum/helm-push
 
@@ -61,7 +65,14 @@
       if [[ "$GITLAB_HELM_REPO_AUTH" == "true" ]]; then
         helm repo add --username="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "$HELM_REPO_NAME" $HELM_STABLE_ENDPOINT
       fi
-    
+
+    # tag based on chart version
+    - |
+      if [[ "$TAG_CHART_VERSION_ENABLE" == "true" ]]; then
+        CHART_VERSION=$(cat Chart.yaml | yq .version)
+        helm cm-push . "$HELM_REPO_NAME" --version=$CHART_VERSION
+      fi
+
     # default tag based on commit
     - |
       if [[ "$TAG_COMMIT_ENABLE" == "true" ]]; then
