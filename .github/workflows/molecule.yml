@@ -66,9 +66,6 @@ jobs:
       - name: Install yq via wget
         run: sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/bin/yq
 
-      - name: Install test dependencies
-        run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
-
       - name: Set CI_HOSTNAME
         run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
         env:
@@ -113,12 +110,14 @@ jobs:
         env:
           TEST_TYPE: "${{ matrix.test_type }}"
 
-      - name: Update requirements.yml
-        run: |
-          set -x
-          test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
-          test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
-        shell: bash
+      # - name: Update requirements.yml
+      #   run: |
+      #     test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
+      #     test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
+      #   shell: bash
+
+      - name: Install test dependencies
+        run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
 
       - name: Print molecule version infos
         run: molecule --version
