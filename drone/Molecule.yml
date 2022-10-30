@@ -34,8 +34,8 @@
       git clean -f -d -x && echo "executed git clean"
       EXITCODE=0
       # set some values
-      export CI_PROJECT_DIR=$DRONE_WORKSPACE_BASE
-      export CI_JOB_ID=$DRONE_BUILD_NUMBER
+      export CI_PROJECT_DIR="$DRONE_WORKSPACE_BASE"
+      export CI_JOB_ID="$DRONE_BUILD_NUMBER"
       export CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')
       export CI_PROJECT_NAME_MOLECULE=$(echo $CI_PROJECT_NAME | tr '_' '-')
       export ANSIBLE_ROOT_REPO=ansible
@@ -43,7 +43,7 @@
       export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
       # real action begins here
       molecule --version
-      echo $ANSIBLE_VAULT_PASSWORD > $CI_PROJECT_DIR/.vault
+      echo "$ANSIBLE_VAULT_PASSWORD" > "$CI_PROJECT_DIR/.vault"
       # Add SSH Key
       mkdir -p ~/.ssh/
       echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
@@ -52,23 +52,23 @@
       eval "$(ssh-agent -s)"
       echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - >/dev/null
       # get molecule scenarios
-      mkdir -p $CI_PROJECT_DIR/molecule/default
-      cd $HOME
-      git clone --depth 1 https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git
-      rsync -avzh --ignore-existing --ignore-errors molecule/$MOLECULE_SCENARIO_NAME/ $CI_PROJECT_DIR/molecule/default/
+      mkdir -p "$CI_PROJECT_DIR/molecule/default"
+      cd "$HOME"
+      git clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git"
+      rsync -avzh --ignore-existing --ignore-errors "molecule/$MOLECULE_SCENARIO_NAME/" "$CI_PROJECT_DIR/molecule/default/"
       # tests directory vars.yml does not exist
-      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ ! -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then yq -i 'del(.provisioner.inventory)' $CI_PROJECT_DIR/molecule/default/molecule.yml; fi
+      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ ! -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then yq -i 'del(.provisioner.inventory)' "$CI_PROJECT_DIR/molecule/default/molecule.yml"; fi
       # tests directory vars.yml exists
-      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then mkdir -p $CI_PROJECT_DIR/group_vars/all/ && rsync -aP $CI_PROJECT_DIR/tests/ $CI_PROJECT_DIR/group_vars/all/; fi
+      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then mkdir -p "$CI_PROJECT_DIR/group_vars/all/" && rsync -aP "$CI_PROJECT_DIR/tests/" "$CI_PROJECT_DIR/group_vars/all/"; fi
       # get real world values
-      if [[ "$TEST_TYPE" == "integration" ]]; then git clone --depth 1 --filter=blob:none --no-checkout https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git; fi
-      if [[ "$TEST_TYPE" == "integration" ]]; then cd infra && git checkout main -- group_vars && rsync -aP group_vars $CI_PROJECT_DIR; fi
+      if [[ "$TEST_TYPE" == "integration" ]]; then git clone --depth 1 --filter=blob:none --no-checkout "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git"; fi
+      if [[ "$TEST_TYPE" == "integration" ]]; then cd infra && git checkout main -- group_vars && rsync -aP group_vars "$CI_PROJECT_DIR"; fi
       # fix requirements.yml URLs + Tokens
-      cd $CI_PROJECT_DIR
+      cd "$CI_PROJECT_DIR"
       if [ -f "requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml; fi
       if [ -f "requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" requirements.yml; fi
       # start molecule testing
-      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd $CI_PROJECT_DIR && molecule test || EXITCODE=$?; fi
-      cd $CI_PROJECT_DIR && molecule destroy
-      test $EXITCODE -eq 0 && echo "All Fine!" || echo "Something bad happened";
+      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd "$CI_PROJECT_DIR" && molecule test || EXITCODE=$?; fi
+      cd "$CI_PROJECT_DIR" && molecule destroy
+      test "$EXITCODE" -eq 0 && echo "All Fine!" || echo "Something bad happened";
       exit $EXITCODE
