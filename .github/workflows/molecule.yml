@@ -83,35 +83,61 @@ jobs:
       - name: Set RANDOM_SUBNET_NAME
         run: echo "RANDOM_SUBNET_NAME=$(shuf -er -n20  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_ENV
 
-      - name: Run Molecule tests
+      - name: Prepare Ansible Vault
+        run: echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ${GITHUB_WORKSPACE}/.vault
+
+      - name: Prepare Molecule Scenario
         run: |
-          EXITCODE=0
-          molecule --version
-          export CI_PROJECT_DIR=${GITHUB_WORKSPACE}
-          echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ${GITHUB_WORKSPACE}/.vault
           mkdir -p ${GITHUB_WORKSPACE}/molecule/default
           rsync -avzh --ignore-existing --ignore-errors git_molecule/$MOLECULE_SCENARIO_NAME/ ${GITHUB_WORKSPACE}/molecule/default/
-          # tests directory does not exist
-          if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ ! -d "${GITHUB_WORKSPACE}/tests" ]]; then yq -i 'del(.provisioner.inventory)' ${GITHUB_WORKSPACE}/molecule/default/molecule.yml; fi
-          # tests directory exists
-          if [[ "$TEST_TYPE" == "unit" && -d "${GITHUB_WORKSPACE}/tests" ]]; then mkdir -p ${GITHUB_WORKSPACE}/group_vars/all/ && rsync -aP --remove-source-files ${GITHUB_WORKSPACE}/tests/ ${GITHUB_WORKSPACE}/group_vars/all/; fi
-          # get real world values
-          if [[ "$TEST_TYPE" == "integration" ]]; then cd git_infra && rsync -aP --remove-source-files group_vars ${GITHUB_WORKSPACE}; fi
-          # fix requirements.yml URLs + Tokens
-          cd ${GITHUB_WORKSPACE}
+          sed -i "s,CI_PROJECT_DIR,GITHUB_WORKSPACE,g" ${GITHUB_WORKSPACE}/molecule/default/molecule.yml
+        shell: bash
+        env:
+          MOLECULE_SCENARIO_NAME: docker
+
+      - name: Update Molecule inventory if tests directory does not exist
+        run: if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ ! -d "${GITHUB_WORKSPACE}/tests" ]]; then yq -i 'del(.provisioner.inventory)' ${GITHUB_WORKSPACE}/molecule/default/molecule.yml; fi
+        shell: bash
+        env:
+          TEST_TYPE: "${{ matrix.test_type }}"
+
+      - name: Sync tests directory to group_vars when exists
+        run: if [[ "$TEST_TYPE" == "unit" && -d "${GITHUB_WORKSPACE}/tests" ]]; then mkdir -p ${GITHUB_WORKSPACE}/group_vars/all/ && rsync -aP --remove-source-files ${GITHUB_WORKSPACE}/tests/ ${GITHUB_WORKSPACE}/group_vars/all/; fi
+        shell: bash
+        env:
+          TEST_TYPE: "${{ matrix.test_type }}"
+
+      - name: Prepare Molecule integration tests with infra variables
+        run: if [[ "$TEST_TYPE" == "integration" ]]; then cd git_infra && rsync -aP --remove-source-files group_vars ${GITHUB_WORKSPACE}; fi
+        shell: bash
+        env:
+          TEST_TYPE: "${{ matrix.test_type }}"
+
+      - name: Update requirements.yml
+        run: |
           test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
           test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
-          if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd ${GITHUB_WORKSPACE} && molecule test || EXITCODE=$?; fi
-          cd ${GITHUB_WORKSPACE} && molecule destroy
-          test $EXITCODE -eq 0 && echo "All Fine!" || echo "Something bad happened";
-          exit $EXITCODE
+        shell: bash
+
+      - name: Print molecule version infos
+        run: molecule --version
+        shell: bash
+
+      - name: Prepare Ansible Vault
+        run: echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ${GITHUB_WORKSPACE}/.vault
+        shell: bash
+
+      - name: Prepare Ansible Vault
+        run: echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ${GITHUB_WORKSPACE}/.vault
+        shell: bash
+
+      - name: Run Molecule tests
+        run: molecule test
         shell: bash
         env:
           ANSIBLE_FORCE_COLOR: '1'
-          ANSIBLE_ROOT_REPO: 'msqu-cicd'
           ANSIBLE_VERBOSITY: '2'
           CI_JOB_ID: "${{ github.run_id }}"
-          CI_SERVER_HOST: "github.com"
           MOLECULE_DEBUG: '1'
           MOLECULE_DISTRO: "${{ matrix.distro }}"
           MOLECULE_SCENARIO_NAME: docker
