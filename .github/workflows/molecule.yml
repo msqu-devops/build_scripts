@@ -103,7 +103,7 @@ jobs:
           TEST_TYPE: "${{ matrix.test_type }}"
 
       - name: Sync test vars to group_vars when exists
-        run: if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]];; then mkdir -p ${GITHUB_WORKSPACE}/group_vars/all/ && rsync -aP --remove-source-files ${GITHUB_WORKSPACE}/tests/ ${GITHUB_WORKSPACE}/group_vars/all/; fi
+        run: if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then mkdir -p ${GITHUB_WORKSPACE}/group_vars/all/ && rsync -aP --remove-source-files ${GITHUB_WORKSPACE}/tests/ ${GITHUB_WORKSPACE}/group_vars/all/; fi
         shell: bash
         env:
           TEST_TYPE: "${{ matrix.test_type }}"
