@@ -103,10 +103,11 @@ jobs:
           TEST_TYPE: "${{ matrix.test_type }}"
 
       - name: Sync tests directory to group_vars when exists
-        run: if [[ "$TEST_TYPE" == "unit" && -d "${GITHUB_WORKSPACE}/tests" ]]; then mkdir -p ${GITHUB_WORKSPACE}/group_vars/all/ && rsync -aP --remove-source-files ${GITHUB_WORKSPACE}/tests/ ${GITHUB_WORKSPACE}/group_vars/all/; fi
+        run: if [[ "$TEST_TYPE" == "unit" && -d "${GITHUB_WORKSPACE}/tests" ]]; then mkdir -p ${GITHUB_WORKSPACE}/group_vars/all/ && rsync -aP --remove-source-files ${GITHUB_WORKSPACE}/tests/vars.yml ${GITHUB_WORKSPACE}/group_vars/all/${CI_JOB_ID}.yml; fi
         shell: bash
         env:
           TEST_TYPE: "${{ matrix.test_type }}"
+          CI_JOB_ID: "${{ github.run_id }}"
 
       - name: Prepare Molecule integration tests with infra variables
         run: if [[ "$TEST_TYPE" == "integration" ]]; then cd git_infra && rsync -aP --remove-source-files group_vars ${GITHUB_WORKSPACE}; fi
