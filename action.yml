@@ -24,23 +24,29 @@ runs:
   steps:
     - name: Install yq via wget
       run: sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/bin/yq
+      shell: bash
 
     - name: Set CI_HOSTNAME
       run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      shell: bash
       env:
         MOLECULE_DISTRO: "${{ inputs.distro }}"
 
     - name: Set CI_PROJECT_NAME_MOLECULE
       run: echo "CI_PROJECT_NAME_MOLECULE=$(echo $GITHUB_REPOSITORY_OWNER | tr '_' '-')" >> $GITHUB_ENV
+      shell: bash
 
     - name: Set RANDOM_SUBNET_IP
       run: echo "RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)" >> $GITHUB_ENV
+      shell: bash
 
     - name: Set RANDOM_SUBNET_NAME
       run: echo "RANDOM_SUBNET_NAME=$(shuf -er -n20  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_ENV
+      shell: bash
 
     - name: Prepare Ansible Vault
       run: echo ${{ inputs.ansible_vault_password }} > ${GITHUB_WORKSPACE}/.vault
+      shell: bash
 
     - name: Prepare Molecule Scenario
       run: |
@@ -78,6 +84,7 @@ runs:
 
     - name: Install test dependencies
       run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
+      shell: bash
 
     - name: Print molecule version infos
       run: molecule --version
