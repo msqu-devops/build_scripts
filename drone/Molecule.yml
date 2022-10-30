@@ -63,8 +63,9 @@
       if [[ "$TEST_TYPE" == "integration" ]]; then cd infra && git checkout main -- group_vars && rsync -aP --remove-source-files group_vars $CI_PROJECT_DIR; fi
       # fix requirements.yml URLs + Tokens
       cd $CI_PROJECT_DIR
-      test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
-      test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
+      if [ -f "requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml; fi
+      if [ -f "requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" requirements.yml; fi
+      # start molecule testing
       if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd $CI_PROJECT_DIR && molecule test || EXITCODE=$?; fi
       cd $CI_PROJECT_DIR && molecule destroy
       test $EXITCODE -eq 0 && echo "All Fine!" || echo "Something bad happened";
