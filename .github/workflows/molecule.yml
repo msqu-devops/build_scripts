@@ -115,6 +115,7 @@ jobs:
 
       - name: Update requirements.yml
         run: |
+          set -x
           test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
           test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
         shell: bash
