@@ -38,12 +38,12 @@ jobs:
         include:
           - distro: debian-11
             test_type: unit
-          # - distro: debian-11
-          #   test_type: integration
-          # - distro: ubuntu-22.04
-          #   test_type: unit
-          # - distro: ubuntu-22.04
-          #   test_type: integration
+          - distro: debian-11
+            test_type: integration
+          - distro: ubuntu-22.04
+            test_type: unit
+          - distro: ubuntu-22.04
+            test_type: integration
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v3
