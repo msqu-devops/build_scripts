@@ -31,7 +31,7 @@
   commands:
     - &MoleculeCommands |
       git reset --hard && echo "executed git reset"
-      git clean -f -d -x && echo "executed git clen"
+      git clean -f -d -x && echo "executed git clean"
       EXITCODE=0
       # set some values
       export CI_PROJECT_DIR=$DRONE_WORKSPACE_BASE
