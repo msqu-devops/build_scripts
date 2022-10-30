@@ -71,4 +71,4 @@
       if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd "$CI_PROJECT_DIR" && molecule test || EXITCODE=$?; fi
       cd "$CI_PROJECT_DIR" && molecule destroy
       test "$EXITCODE" -eq 0 && echo "All Fine!" || echo "Something bad happened";
-      exit $EXITCODE
+      exit "$EXITCODE"
