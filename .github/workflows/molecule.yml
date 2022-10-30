@@ -116,8 +116,8 @@ jobs:
 
       - name: Update requirements.yml
         run: |
-          test -f ${GITHUB_WORKSPACE}/requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" ${GITHUB_WORKSPACE}/requirements.yml
-          test -f ${GITHUB_WORKSPACE}/requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" ${GITHUB_WORKSPACE}/requirements.yml
+          if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
+          if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
         shell: bash
 
       - name: Install test dependencies
