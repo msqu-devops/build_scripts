@@ -1,0 +1,19 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  comments:
+    require-starting-space: false
+    ignore-shebangs: true
+    min-spaces-from-content: 1
+  truthy:
+    allowed-values: ["yes", "no", "true", "false"]
+
+ignore: |
+  .drone.yml
+  .github/
+  .gitlab-ci.yml
+  molecule/
