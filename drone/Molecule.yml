@@ -30,6 +30,8 @@
       from_secret: SSH_PRIVATE_KEY
   commands:
     - &MoleculeCommands |
+      git reset --hard && echo "executed git reset"
+      git clean -f -d -x && echo "executed git clen"
       EXITCODE=0
       # set some values
       export CI_PROJECT_DIR=$DRONE_WORKSPACE_BASE
