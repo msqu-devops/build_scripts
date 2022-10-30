@@ -4,6 +4,9 @@ description: Run Ansible Molecule
 author: Michael Schmitz
 
 inputs:
+  ansible_vault_password:
+    description: 'Password for decrypting the vault'
+    required: true
   distro:
     description: 'Execute tests against distribution'
     default: 'debian-11'
@@ -37,7 +40,7 @@ runs:
       run: echo "RANDOM_SUBNET_NAME=$(shuf -er -n20  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_ENV
 
     - name: Prepare Ansible Vault
-      run: echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ${GITHUB_WORKSPACE}/.vault
+      run: echo ${{ inputs.ansible_vault_password }} > ${GITHUB_WORKSPACE}/.vault
 
     - name: Prepare Molecule Scenario
       run: |
