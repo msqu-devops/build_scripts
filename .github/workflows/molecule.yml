@@ -38,12 +38,12 @@ jobs:
         include:
           - distro: debian-11
             test_type: unit
-          - distro: debian-11
-            test_type: integration
-          - distro: ubuntu-22.04
-            test_type: unit
-          - distro: ubuntu-22.04
-            test_type: integration
+          # - distro: debian-11
+          #   test_type: integration
+          # - distro: ubuntu-22.04
+          #   test_type: unit
+          # - distro: ubuntu-22.04
+          #   test_type: integration
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v3
@@ -114,11 +114,11 @@ jobs:
         env:
           TEST_TYPE: "${{ matrix.test_type }}"
 
-      # - name: Update requirements.yml
-      #   run: |
-      #     test -f requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" requirements.yml
-      #     test -f requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" requirements.yml
-      #   shell: bash
+      - name: Update requirements.yml
+        run: |
+          test -f ${GITHUB_WORKSPACE}/requirements.yml && sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" ${GITHUB_WORKSPACE}/requirements.yml
+          test -f ${GITHUB_WORKSPACE}/requirements.yml && sed -i "s,git@github.com:,https://github.com/,g" ${GITHUB_WORKSPACE}/requirements.yml
+        shell: bash
 
       - name: Install test dependencies
         run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
