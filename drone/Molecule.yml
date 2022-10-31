@@ -33,10 +33,8 @@
       from_secret: SSH_PRIVATE_KEY
   commands:
     - &MoleculeCommands |
-      git reset --hard && echo "executed git reset"
-      git clean -f -d -x && echo "executed git clean"
+      git reset --hard && git clean -f -d -x && echo "executed git reset + clean"
       EXITCODE=0
-      # set some values
       export CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')
       export CI_PROJECT_NAME_MOLECULE=$(echo $CI_PROJECT_NAME | tr '_' '-')
       export RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)
