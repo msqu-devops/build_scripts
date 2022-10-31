@@ -35,8 +35,11 @@
     - &MoleculeCommands |
       git reset --hard && git clean -f -d -x && echo "executed git reset + clean"
       EXITCODE=0
+      export CI_PROJECT_DIR="$DRONE_WORKSPACE_BASE"
+      export CI_JOB_ID="$DRONE_BUILD_NUMBER"
       export CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')
       export CI_PROJECT_NAME_MOLECULE=$(echo $CI_PROJECT_NAME | tr '_' '-')
+      export ANSIBLE_ROOT_REPO=ansible
       export RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)
       export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
       # real action begins here
