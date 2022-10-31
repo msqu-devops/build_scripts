@@ -1,0 +1,9 @@
+---
+kind: pipeline
+name: default
+
+steps:
+- name: printenv
+  image: alpine
+  commands:
+    - printenv
