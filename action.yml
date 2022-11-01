@@ -11,6 +11,12 @@ inputs:
     description: 'Execute tests against distribution'
     default: 'debian-11'
     required: true
+  gitea_username:
+    description: 'Username for Gitea authentication'
+    required: true
+  gitea_token:
+    description: 'Token for Gitea authentication'
+    required: true
   token:
     description: 'A Github PAT'
     required: true
@@ -100,9 +106,12 @@ runs:
 
     - name: Update requirements.yml
       run: |
-        if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
+        if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://${GITEA_USERNAME}:${GITEA_TOKEN}@gitea.msqu.de,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
         if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
       shell: bash
+      env:
+        GITEA_USERNAME: "${{ inputs.gitea_username }}"
+        GITEA_TOKEN: "${{ inputs.gitea_token }}"
 
     - name: Install test dependencies
       run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
