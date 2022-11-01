@@ -114,7 +114,7 @@ runs:
         GITEA_TOKEN: "${{ inputs.gitea_token }}"
 
     - name: Install test dependencies
-      run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
+      run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath dnspython
       shell: bash
 
     - name: Print molecule version infos
