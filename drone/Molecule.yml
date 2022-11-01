@@ -39,29 +39,23 @@
       export CI_PROJECT_NAME_MOLECULE=$(echo $CI_PROJECT_NAME | tr '_' '-')
       export RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)
       export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
-      # real action begins here
-      molecule --version
       echo "$ANSIBLE_VAULT_PASSWORD" > "$CI_PROJECT_DIR/.vault"
       # Add SSH Key
       mkdir -p ~/.ssh/ && echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
       echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
       eval "$(ssh-agent -s)" && echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - >/dev/null
-      # get molecule scenarios
-      mkdir -p "$CI_PROJECT_DIR/molecule/default"
-      git -C "$HOME" clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git"
-      rsync -avzh --ignore-existing --ignore-errors "$HOME/molecule/$MOLECULE_SCENARIO_NAME/" "$CI_PROJECT_DIR/molecule/default/"
-      # tests directory vars.yml does not exist
+      # prepare molecule
+      git -C "$HOME" clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git" && [[ $(find $HOME/molecule/.git/objects -type f | wc -l) != 0 ]]
+      mkdir -p "$CI_PROJECT_DIR/molecule/default" && rsync -avzh --ignore-existing --ignore-errors "$HOME/molecule/$MOLECULE_SCENARIO_NAME/" "$CI_PROJECT_DIR/molecule/default/"
       if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ ! -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then yq -i 'del(.provisioner.inventory)' "$CI_PROJECT_DIR/molecule/default/molecule.yml"; fi
-      # tests directory vars.yml exists
       if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then mkdir -p "$CI_PROJECT_DIR/group_vars/all/" && rsync -aP "$CI_PROJECT_DIR/tests/" "$CI_PROJECT_DIR/group_vars/all/"; fi
-      # get real world values
-      if [[ "$TEST_TYPE" == "integration" ]]; then git -C "$HOME" clone --depth 1 --filter=blob:none --no-checkout "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git"; fi
-      if [[ "$TEST_TYPE" == "integration" ]]; then cd "$HOME/infra" && git checkout main -- group_vars && rsync -aP group_vars "$CI_PROJECT_DIR" && cd "$CI_PROJECT_DIR"; fi
+      if [[ "$TEST_TYPE" == "integration" ]]; then git -C "$HOME" clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git" && [[ $(find $HOME/infra/.git/objects -type f | wc -l) != 0 ]]; fi
+      if [[ "$TEST_TYPE" == "integration" ]]; then rsync -aP "$HOME/infra/group_vars" "$CI_PROJECT_DIR"; fi
       # fix requirements.yml URLs + Tokens
       if [ -f "$CI_PROJECT_DIR/requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" "$CI_PROJECT_DIR/requirements.yml"; fi
       if [ -f "$CI_PROJECT_DIR/requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" "$CI_PROJECT_DIR/requirements.yml"; fi
       # start molecule testing
-      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd "$CI_PROJECT_DIR" && molecule test || EXITCODE=$?; fi
+      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd "$CI_PROJECT_DIR" && molecule --version && molecule test || EXITCODE=$?; fi
       cd "$CI_PROJECT_DIR" && molecule destroy
-      test "$EXITCODE" -eq 0 && echo "All Fine!" || echo "Something bad happened";
+      test "$EXITCODE" -eq 0 && echo "📗 All Fine!" || echo "📘 Something bad happened";
       exit "$EXITCODE"
