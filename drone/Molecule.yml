@@ -5,7 +5,7 @@
 
 .GitChanged: &GitChanged
   name: trigger
-  image: plugins/git
+  image: alpine/git
   pull: always
   commands:
     - test "$FORCE" = "true" && exit 0
