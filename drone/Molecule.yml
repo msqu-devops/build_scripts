@@ -3,6 +3,14 @@
 .variables: &global-variables
   MOLECULE_SCENARIO_NAME: hetznercloud
 
+.GitClone: &GitClone
+  name: clone
+  image: alpine/git
+  pull: always
+  commands:
+    - git clone $DRONE_GIT_HTTP_URL .
+    - git checkout $DRONE_COMMIT
+
 .GitChanged: &GitChanged
   name: trigger
   image: alpine/git
