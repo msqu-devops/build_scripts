@@ -15,7 +15,6 @@
 .ContainerImageDocker: &ContainerImageDocker
   name: ContainerImageDocker
   image: docker:latest
-  network_mode: host
 
   volumes:
   - name: dockersock
@@ -44,6 +43,7 @@
     PUSH_TAGS: "true"
     DOCKER_WAIT_START_SECONDS: "5"
     DOCKER_BUILDKIT: 1
+    DOCKER_OPTS: "--dns 8.8.8.8"
 
   commands:
     - &ContainerImageDockerCommands |
