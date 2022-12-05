@@ -15,6 +15,7 @@
 .ContainerImageDocker: &ContainerImageDocker
   name: ContainerImageDocker
   image: docker:latest
+  network_mode: host
 
   volumes:
   - name: dockersock
