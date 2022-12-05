@@ -198,6 +198,13 @@
         env
       fi
 
+      # Wait until Docker daemon is running and has completed initialisation
+      while (! docker stats --no-stream ); do
+        # Docker takes a few seconds to initialize
+        echo "Waiting for Docker to launch..."
+        sleep 1
+      done
+
       # give docker enough time to start
       sleep $DOCKER_WAIT_START_SECONDS
 
