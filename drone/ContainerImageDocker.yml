@@ -41,9 +41,7 @@
     MERGE_REGISTRY_JSON: "true"
     DEBUG_STEP: "false"
     PUSH_TAGS: "true"
-    DOCKER_WAIT_START_SECONDS: "5"
     DOCKER_BUILDKIT: 1
-    DOCKER_OPTS: "--dns 8.8.8.8"
 
   commands:
     - &ContainerImageDockerCommands |
@@ -200,14 +198,11 @@
       fi
 
       # Wait until Docker daemon is running and has completed initialisation
-      while (! docker stats --no-stream ); do
+      while (! docker stats --no-stream >/dev/null 2>&1); do
         # Docker takes a few seconds to initialize
         echo "Waiting for Docker to launch..."
-        sleep 1
+        sleep 5
       done
-
-      # give docker enough time to start
-      sleep $DOCKER_WAIT_START_SECONDS
 
       # start build
       echo $ALL_ARGS | xargs docker build
