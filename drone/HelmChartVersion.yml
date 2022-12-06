@@ -33,13 +33,14 @@
     TAG_CHART_VERSION_ENABLE: "true"
 
   commands:
-    # drone does not support expanding vars in environment values, set defaults via bash
-    - if [[ -z "$HELM_REPO_NAME" ]]; then HELM_REPO_NAME=$CI_PROJECT_NAME; fi
-    - if [[ -z "$HELM_USER" ]]; then HELM_USER=$CI_REGISTRY_USER; fi
-    - if [[ -z "$HELM_PASSWORD" ]]; then HELM_PASSWORD=$CI_REGISTRY_PASSWORD; fi
 
-    # add default chart endpoints for gitea
-    - |
+    - &HelmChartPublishCommands |
+      # drone does not support expanding vars in environment values, set defaults via bash
+      if [[ -z "$HELM_REPO_NAME" ]]; then HELM_REPO_NAME=$CI_PROJECT_NAME; fi
+      if [[ -z "$HELM_USER" ]]; then HELM_USER=$CI_REGISTRY_USER; fi
+      if [[ -z "$HELM_PASSWORD" ]]; then HELM_PASSWORD=$CI_REGISTRY_PASSWORD; fi
+
+      # add default chart endpoints for gitea
       if [[ -z "$HELM_ENDPOINT" ]]; then
         if [[ ! -z "$GITEA_PACKAGES_API" ]]; then
           HELM_ENDPOINT="$GITEA_PACKAGES_API/$CI_PROJECT_NAMESPACE/helm"
@@ -49,29 +50,30 @@
         fi
       fi
 
-    # install plugin chartmuseum/helm-push
-    - helm plugin install https://github.com/chartmuseum/helm-push
+      # install plugin chartmuseum/helm-push
+      helm plugin install https://github.com/chartmuseum/helm-push
 
-    # register repo
-    - helm repo add --username="$HELM_USER" --password="$HELM_PASSWORD" "$HELM_REPO_NAME" "$HELM_ENDPOINT"
+      # register repo
+      helm repo add --username="$HELM_USER" --password="$HELM_PASSWORD" "$HELM_REPO_NAME" "$HELM_ENDPOINT"
 
-    # add repo auth
-    - |
-      if [[ "$GITLAB_HELM_REPO_AUTH" == "true" ]]; then
-        helm repo add --username="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "$HELM_REPO_NAME" $HELM_STABLE_ENDPOINT
+      cd "$CHART_PATH"
+
+      # lint if enabled
+      if [[ "$HELM_LINT" == "true" ]]; then
+        helm lint .
       fi
 
-    # prepare packages
-    - for dir in $CHART_PATH/*; do echo $dir; done
-    - |
-      for dir in $CHART_PATH/*; do
-        [[ -e "$dir" ]] || break # handle case of no charts
-        [[ -d "$dir" ]] || continue # handle case that $dir is a file
+      # prepare packages
+      for dir in $CHART_PATH/*; do echo $dir; done
+      - |
+        for dir in $CHART_PATH/*; do
+          [[ -e "$dir" ]] || break # handle case of no charts
+          [[ -d "$dir" ]] || continue # handle case that $dir is a file
 
-        if [ ! -f "$dir/Chart.yaml" ]; then
-          echo "skipping $dir because it lacks a Chart.yaml file"
-        else
-          echo "packaging $dir"
-          helm cm-push $dir "$HELM_REPO_NAME"
-        fi
-      done
+          if [ ! -f "$dir/Chart.yaml" ]; then
+            echo "skipping $dir because it lacks a Chart.yaml file"
+          else
+            echo "packaging $dir"
+            helm cm-push $dir "$HELM_REPO_NAME"
+          fi
+        done
