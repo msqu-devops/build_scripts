@@ -58,15 +58,14 @@
 
       # prepare packages
       for dir in $CHART_PATH/*; do echo $dir; done
-      - |
-        for dir in $CHART_PATH/*; do
-          [[ -e "$dir" ]] || break # handle case of no charts
-          [[ -d "$dir" ]] || continue # handle case that $dir is a file
+      for dir in $CHART_PATH/*; do
+        [[ -e "$dir" ]] || break # handle case of no charts
+        [[ -d "$dir" ]] || continue # handle case that $dir is a file
 
-          if [ ! -f "$dir/Chart.yaml" ]; then
-            echo "skipping $dir because it lacks a Chart.yaml file"
-          else
-            echo "packaging $dir"
-            helm cm-push $dir "$HELM_REPO_NAME"
-          fi
-        done
+        if [ ! -f "$dir/Chart.yaml" ]; then
+          echo "skipping $dir because it lacks a Chart.yaml file"
+        else
+          echo "packaging $dir"
+          helm cm-push $dir "$HELM_REPO_NAME"
+        fi
+      done
