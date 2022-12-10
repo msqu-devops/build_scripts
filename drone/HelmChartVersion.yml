@@ -56,13 +56,6 @@
       # register repo
       helm repo add --username="$HELM_USER" --password="$HELM_PASSWORD" "$HELM_REPO_NAME" "$HELM_ENDPOINT"
 
-      cd "$CHART_PATH"
-
-      # lint if enabled
-      if [[ "$HELM_LINT" == "true" ]]; then
-        helm lint .
-      fi
-
       # prepare packages
       for dir in $CHART_PATH/*; do echo $dir; done
       - |
