@@ -205,19 +205,30 @@
         sleep 5
       done
 
-      # start build
+      # prepare multiarch build
       if [[ "$DOCKER_MULTI_ARCH" == "true" ]]; then
         # https://github.com/docker/buildx/issues/495#issuecomment-761562905
         docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
         docker buildx create --name multiarch --driver docker-container --use
         docker buildx inspect --bootstrap
-        echo $ALL_ARGS | xargs docker buildx build --platform linux/amd64,linux/arm64
-      else
-      echo $ALL_ARGS | xargs docker build
+      fi
+
+      # multiarch build
+      if [[ "$DOCKER_MULTI_ARCH" == "true" ]]; then
+        if [[ "$PUSH_TAGS" == "true" ]]; then
+          echo $ALL_ARGS | xargs docker buildx build --platform linux/amd64,linux/arm64 --push
+        else
+          echo $ALL_ARGS | xargs docker buildx build --platform linux/amd64,linux/arm64
+        fi
+      fi
+
+      # normal builds
+      if [[ "$DOCKER_MULTI_ARCH" == "false" ]]; then
+        echo $ALL_ARGS | xargs docker build
       fi
 
       # push tags
-      if [[ "$PUSH_TAGS" == "true" ]]; then
+      if [[ "$DOCKER_MULTI_ARCH" == "false" ]] && [[ "$PUSH_TAGS" == "true" ]]; then
         IFS=" "
         echo "IMAGE_DESTS_PUSH=$IMAGE_DESTS_PUSH"
         for TAG in $IMAGE_DESTS_PUSH; do
