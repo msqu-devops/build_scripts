@@ -68,7 +68,7 @@
       if [ -f "$CI_PROJECT_DIR/requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" "$CI_PROJECT_DIR/requirements.yml"; fi
       # start molecule testing
       if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd "$CI_PROJECT_DIR" && molecule --version && molecule test || EXITCODE=$?; fi
-      cd "$CI_PROJECT_DIR" && molecule destroy
+      cd "$CI_PROJECT_DIR" && for i in 1 2 3; do molecule destroy && break || sleep 15; done
       test "$EXITCODE" -eq 0 && echo "📗 All Fine!" || echo "📘 Something bad happened";
       exit "$EXITCODE"
 
@@ -137,6 +137,6 @@
       if [ -f "$CI_PROJECT_DIR/requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" "$CI_PROJECT_DIR/requirements.yml"; fi
       # start molecule testing
       if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "integration" ]]; then cd "$CI_PROJECT_DIR" && molecule --version && molecule test || EXITCODE=$?; fi
-      cd "$CI_PROJECT_DIR" && molecule destroy
+      cd "$CI_PROJECT_DIR" && for i in 1 2 3; do molecule destroy && break || sleep 15; done
       test "$EXITCODE" -eq 0 && echo "📗 All Fine!" || echo "📘 Something bad happened";
       exit "$EXITCODE"
