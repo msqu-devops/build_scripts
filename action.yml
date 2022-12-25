@@ -106,12 +106,12 @@ runs:
 
     - name: Update requirements.yml
       run: |
-        if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://${GITEA_USERNAME}:${GITEA_TOKEN}@gitea.msqu.de,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
-        if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
+        if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222/.*/,https://$GITHUB_TOKEN@github.com/${GITHUB_REPOSITORY_OWNER}/,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
       shell: bash
       env:
-        GITEA_USERNAME: "${{ inputs.gitea_username }}"
-        GITEA_TOKEN: "${{ inputs.gitea_token }}"
+        GITEA_USERNAME: ${{ inputs.gitea_username }}
+        GITEA_TOKEN: ${{ inputs.gitea_token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install test dependencies
       run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath dnspython
@@ -128,6 +128,7 @@ runs:
         ANSIBLE_FORCE_COLOR: '1'
         ANSIBLE_VERBOSITY: '2'
         CI_JOB_ID: "${{ github.run_id }}"
+        GITHUB_TOKEN: ${{ inputs.token }}
         MOLECULE_DEBUG: '1'
         MOLECULE_DISTRO: "${{ inputs.distro }}"
         MOLECULE_SCENARIO_NAME: docker
