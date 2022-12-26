@@ -21,6 +21,11 @@
       && DIFF_STRING=origin/${DRONE_COMMIT_BRANCH:-master}
       || DIFF_STRING=${DRONE_COMMIT_SHA}~
     - git --no-pager diff --exit-code --name-only $DIFF_STRING ':!.ansible-lint' ':!.drone.yml' ':!Makefile' ':!.github/*' ':!.yamllint' && exit 78 || echo "files changed"
+  when:
+    event:
+      exclude:
+      - pull_request
+      - tag
 
 .Molecule: &Molecule
   name: molecule
