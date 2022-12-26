@@ -8,8 +8,9 @@
   image: alpine/git
   pull: always
   commands:
-    - git clone $DRONE_GIT_HTTP_URL .
+    - git clone --depth 1 $DRONE_GIT_HTTP_URL .
     - git checkout $DRONE_COMMIT
+    - git fetch --tags
 
 .GitChanged: &GitChanged
   name: trigger
