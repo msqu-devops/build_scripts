@@ -120,6 +120,7 @@
     - &MoleculeCommands |
       git reset --hard && git clean -f -d -x && echo "executed git reset + clean"
       EXITCODE=0
+      if [ "$(yq '.galaxy_info.min_ansible_container_version' $CI_PROJECT_DIR}/meta/main.yml)" == "X" ]; then exit 78; fi
       export CI_PROJECT_DIR="$DRONE_WORKSPACE_BASE"
       export CI_JOB_ID="$DRONE_BUILD_NUMBER"
       export CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')
