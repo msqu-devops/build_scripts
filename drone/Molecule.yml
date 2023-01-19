@@ -59,7 +59,7 @@
       export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
       echo "$ANSIBLE_VAULT_PASSWORD" > "$CI_PROJECT_DIR/.vault"
       # Add SSH Key
-      mkdir -p ~/.ssh/ && echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+      mkdir -p ~/.ssh/ && echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
       echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
       eval "$(ssh-agent -s)" && echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - >/dev/null
       # prepare molecule
@@ -129,7 +129,7 @@
       export RANDOM_SUBNET_NAME=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 16 | head -n 1)
       echo "$ANSIBLE_VAULT_PASSWORD" > "$CI_PROJECT_DIR/.vault"
       # Add SSH Key
-      mkdir -p ~/.ssh/ && echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+      mkdir -p ~/.ssh/ && echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
       echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
       eval "$(ssh-agent -s)" && echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - >/dev/null
       # prepare molecule
