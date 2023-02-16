@@ -9,8 +9,11 @@
   - dockerd-entrypoint.sh --experimental
 
 .ContainerImageDockerVolume: &ContainerImageDockerVolume
-  name: dockersock
-  temp: {}
+  name: ContainerImageDockerVolume
+  volumes:
+    - name: dockersock
+      host:
+        path: /var/run/docker.sock
 
 .ContainerImageDocker: &ContainerImageDocker
   name: ContainerImageDocker
