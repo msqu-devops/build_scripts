@@ -11,9 +11,9 @@
 .ContainerImageDockerVolume: &ContainerImageDockerVolume
   name: ContainerImageDockerVolume
   volumes:
-    - name: dockersock
-      host:
-        path: /var/run/docker.sock
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
 
 .ContainerImageDocker: &ContainerImageDocker
   name: ContainerImageDocker
@@ -21,7 +21,7 @@
 
   volumes:
   - name: dockersock
-    path: /var/run
+    path: /var/run/docker.sock
 
   environment:
     DOCKER_ARCH: ""
