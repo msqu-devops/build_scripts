@@ -17,14 +17,18 @@
   image: alpine/git
   pull: always
   commands:
-    - if [[ -n "$FORCE" ]]; then exit 0; fi
-    - test $DRONE_BUILD_EVENT = "pull_request"
-      && DIFF_STRING=origin/${DRONE_COMMIT_BRANCH:-master}
-      || DIFF_STRING=${DRONE_COMMIT_SHA}~
-    - git --no-pager diff --exit-code --name-only $DIFF_STRING ':!.ansible-lint' ':!.drone.yml' ':!Makefile' ':!.github/*' ':!.yamllint' && exit 78 || echo "files changed"
+    - export NAME=$(test $DRONE_BUILD_EVENT = pull_request && echo remotes/origin/${DRONE_COMMIT_BRANCH:-master} || echo ${DRONE_COMMIT_SHA}~)
+    - export DIFF=$(git --no-pager diff --name-only $NAME -- ':!.drone.yml' ':!.ansible-lint' ':!.yamllint' ':!Makefile');
+    - if [[ -z "$DIFF" && "$FORCE" != "yes" ]]; then
+          echo "All changed files are on ignore list";
+          exit 78;
+      else
+          echo "Files changed";
+          echo "$DIFF";
+      fi;
   when:
     event:
-      exclude:
+      - push
       - pull_request
       - tag
 
