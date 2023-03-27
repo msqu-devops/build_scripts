@@ -64,6 +64,9 @@
         fi
       }
 
+      # add git
+      apk add --no-cache git
+
       # add default registry as target
       if [[ "$ADD_CI_REGISTRY_TARGET" == "true" ]]; then
         REGISTRY_TARGETS="$CI_REGISTRY_IMAGE:"
