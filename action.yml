@@ -55,22 +55,8 @@ runs:
       with:
         python-version: '3.x'
 
-    - name: Set CI_HOSTNAME
-      run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-      shell: bash
-      env:
-        MOLECULE_DISTRO: "${{ inputs.distro }}"
-
     - name: Set CI_PROJECT_NAME_MOLECULE
       run: echo "CI_PROJECT_NAME_MOLECULE=$(echo $GITHUB_REPOSITORY_OWNER | tr '_' '-')" >> $GITHUB_ENV
-      shell: bash
-
-    - name: Set RANDOM_SUBNET_IP
-      run: echo "RANDOM_SUBNET_IP=$(shuf -i 2-254 -n 1)" >> $GITHUB_ENV
-      shell: bash
-
-    - name: Set RANDOM_SUBNET_NAME
-      run: echo "RANDOM_SUBNET_NAME=$(shuf -er -n20  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_ENV
       shell: bash
 
     - name: Prepare Ansible Vault
@@ -97,7 +83,6 @@ runs:
       shell: bash
       env:
         TEST_TYPE: "${{ inputs.test_type }}"
-        CI_JOB_ID: "${{ github.run_id }}"
 
     - name: Prepare Molecule integration tests with infra variables
       run: if [[ "$TEST_TYPE" == "integration" ]]; then cd git_infra && rsync -aP group_vars ${GITHUB_WORKSPACE}; fi
@@ -132,7 +117,6 @@ runs:
       env:
         ANSIBLE_FORCE_COLOR: '1'
         ANSIBLE_VERBOSITY: '2'
-        CI_JOB_ID: "${{ github.run_id }}"
         GITEA_TOKEN: ${{ inputs.gitea_token }}
         GITEA_USERNAME: ${{ inputs.gitea_username }}
         GITHUB_TOKEN: ${{ inputs.token }}
