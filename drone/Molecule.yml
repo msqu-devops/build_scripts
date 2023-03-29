@@ -65,7 +65,7 @@
       # prepare molecule
       git -C "$HOME" clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git" && [[ $(find $HOME/molecule/.git/objects -type f | wc -l) != 0 ]]
       mkdir -p "$CI_PROJECT_DIR/molecule/default" && rsync -avzh --ignore-existing --ignore-errors "$HOME/molecule/$MOLECULE_SCENARIO_NAME/" "$CI_PROJECT_DIR/molecule/default/"
-      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then mkdir -p "$CI_PROJECT_DIR/molecule/default/group_vars/all/" && rsync -aP "$CI_PROJECT_DIR/tests/" "$CI_PROJECT_DIR/molecule/default/group_vars/all/"; fi
+      if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then mkdir -p "$CI_PROJECT_DIR/molecule/default/group_vars/all/" && rsync -aP "$CI_PROJECT_DIR/tests/" "$CI_PROJECT_DIR/molecule/default/group_vars/all/"; fi
       if [[ "$TEST_TYPE" == "integration" ]]; then git -C "$HOME" clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git" && [[ $(find $HOME/infra/.git/objects -type f | wc -l) != 0 ]]; fi
       if [[ "$TEST_TYPE" == "integration" ]]; then rsync -aP "$HOME/infra/group_vars" "$CI_PROJECT_DIR/molecule/default/"; fi
       # fix requirements.yml URLs + Tokens
@@ -130,7 +130,7 @@
       # prepare molecule
       git -C "$HOME" clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/molecule.git" && [[ $(find $HOME/molecule/.git/objects -type f | wc -l) != 0 ]]
       mkdir -p "$CI_PROJECT_DIR/molecule/default" && rsync -avzh --ignore-existing --ignore-errors "$HOME/molecule/$MOLECULE_SCENARIO_NAME/" "$CI_PROJECT_DIR/molecule/default/"
-      if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then mkdir -p "$CI_PROJECT_DIR/molecule/default/group_vars/all/" && rsync -aP "$CI_PROJECT_DIR/tests/" "$CI_PROJECT_DIR/molecule/default/group_vars/all/"; fi
+      if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "$CI_PROJECT_DIR/tests/vars.yml" ]]; then mkdir -p "$CI_PROJECT_DIR/molecule/default/group_vars/all/" && rsync -aP "$CI_PROJECT_DIR/tests/" "$CI_PROJECT_DIR/molecule/default/group_vars/all/"; fi
       if [[ "$TEST_TYPE" == "integration" ]]; then git -C "$HOME" clone --depth 1 "https://$CI_SERVER_HOST/$ANSIBLE_ROOT_REPO/infra.git" && [[ $(find $HOME/infra/.git/objects -type f | wc -l) != 0 ]]; fi
       if [[ "$TEST_TYPE" == "integration" ]]; then rsync -aP "$HOME/infra/group_vars" "$CI_PROJECT_DIR/molecule/default/"; fi
       # fix requirements.yml URLs + Tokens
