@@ -21,11 +21,14 @@ jobs:
       - name: Pull Lint image
         run: docker pull -q schmitzis/molecule:lint
 
-      - name: Ansible Linting
+      - name: ansible-lint
         run: docker run --rm -v ${GITHUB_WORKSPACE}:/git -w /git schmitzis/molecule:lint ansible-lint -p --offline /git
 
-      - name: Yaml Linting
+      - name: yamllint
         run: docker run --rm -v ${GITHUB_WORKSPACE}:/git -w /git schmitzis/molecule:lint yamllint -f parsable /git
+
+      - name: shellcheck
+        run: docker run --rm -v ${GITHUB_WORKSPACE}:/git -w /git schmitzis/molecule:lint find . -name .git -type d -prune -o -type f -name \*.sh -print0 | xargs -0 -r -n1 shellcheck
 
   molecule:
     name: Molecule
