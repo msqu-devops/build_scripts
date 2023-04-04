@@ -18,7 +18,7 @@
   pull: always
   commands:
     - export NAME=$(test $DRONE_BUILD_EVENT = pull_request && echo remotes/origin/${DRONE_COMMIT_BRANCH:-master} || echo ${DRONE_COMMIT_SHA}~)
-    - export DIFF=$(git --no-pager diff --name-only $NAME -- ':!.drone.yml' ':!.ansible-lint' ':!.yamllint' ':!Makefile');
+    - export DIFF=$(git --no-pager diff --name-only $NAME -- ':!.ansible-lint' ':!.drone.yml' ':!.gitea' ':!.github' ':!.yamllint' ':!Makefile');
     - if [[ -z "$DIFF" && "$FORCE" != "yes" ]]; then
           echo "All changed files are on ignore list";
           exit 78;
