@@ -8,7 +8,7 @@
   commands:
     - &AnsibleTestingAnsibleLintCommands |
       ansible-lint --version
-      ansible-lint --force-color -p --offline $DRONE_WORKSPACE_BASE
+      ansible-lint --force-color $DRONE_WORKSPACE_BASE
   depends_on: [ clone ]
 
 .AnsibleTestingShellcheck: &AnsibleTestingShellcheck
