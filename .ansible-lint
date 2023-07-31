@@ -1,17 +1,18 @@
 ---
 exclude_paths:
   - .cache/
+  - .gitea/
   - .github/
   - .gitlab-ci.yml
 
-parseable: true
-
 offline: true
 
-warn_list:
-  - '106'
-  - command-instead-of-module
-  - key-order[task]
-  - name[template]
-  - no-handler
+parseable: true
+
+skip_list:
   - yaml
+
+warn_list:
+  - name[template]
+  - role-name
+  - jinja[spacing]
