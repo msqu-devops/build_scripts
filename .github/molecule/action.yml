@@ -16,6 +16,9 @@ inputs:
   hcloud_token:
     description: 'Hetzner API Token'
     default: ''
+  hcloud_server_state:
+    description: 'Server State after Molecule run'
+    default: 'absent'
   molecule_scenario:
     description: Molecule scenario for testing
     default: 'hetznercloud'
@@ -127,3 +130,4 @@ runs:
         TEST_TYPE: "${{ inputs.test_type }}"
         CI_PROJECT_DIR: "$GITHUB_WORKSPACE"
         HCLOUD_TOKEN: "${{ inputs.hcloud_token }}"
+        HCLOUD_SERVER_STATE: "${{ inputs.hcloud_server_state }}"
