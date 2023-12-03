@@ -15,7 +15,7 @@ inputs:
     default: 'debian-12'
   hcloud_token:
     description: 'Hetzner API Token'
-    default: 'debian-12'
+    default: ''
   molecule_scenario:
     description: Molecule scenario for testing
     default: 'hetznercloud'
