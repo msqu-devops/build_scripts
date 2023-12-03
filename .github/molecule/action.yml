@@ -48,6 +48,17 @@ runs:
         path: 'git_molecule'
         ref: 'main'
 
+    - name: Check out the infra repository
+      uses: actions/checkout@v4
+      with:
+        github-server-url: 'https://gitea.msqu.de'
+        repository: ansible/molecule
+        token: ${{ inputs.token }}
+        path: 'git_infra'
+        ref: 'main'
+        sparse-checkout: |
+          requirements
+
     - name: Set CI_HOSTNAME
       run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       shell: bash
@@ -99,7 +110,7 @@ runs:
 
     - name: Install collections from collections.yml
       if: "${{ inputs.ansible_scenario != '' }}"
-      run: ansible-galaxy install -r git_molecule/requirements/collections_${{ inputs.ansible_scenario }}.yml
+      run: ansible-galaxy install -r git_infra/requirements/collections.yml
       shell: bash
 
     - name: Print molecule version infos
