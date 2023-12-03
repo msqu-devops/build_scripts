@@ -41,11 +41,6 @@ runs:
         path: 'git_molecule'
         ref: 'main'
 
-    # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md
-    - name: Uninstall preinstalled software
-      run: sudo apt-get purge -y ansible python3-jinja2
-      shell: bash
-
     - name: Set CI_HOSTNAME
       run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       shell: bash
