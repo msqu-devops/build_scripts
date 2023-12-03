@@ -25,6 +25,9 @@ inputs:
   test_type:
     description: 'Choose between: unit|integration'
     default: 'unit'
+  token:
+    description: 'Gitea Runner token'
+    default: 'unit'
 
 runs:
   using: "composite"
@@ -34,7 +37,7 @@ runs:
       with:
         github-server-url: 'https://gitea.msqu.de'
         repository: ansible/molecule
-        token: ${{ secrets.ACT_RUNNER_PAT }}
+        token: ${{ inputs.token }}
         path: 'git_molecule'
         ref: 'main'
 
