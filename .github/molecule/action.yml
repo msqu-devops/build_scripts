@@ -13,6 +13,9 @@ inputs:
   distro:
     description: 'Execute tests against distribution'
     default: 'debian-12'
+  hcloud_token:
+    description: 'Hetzner API Token'
+    default: 'debian-12'
   molecule_scenario:
     description: Molecule scenario for testing
     default: 'hetznercloud'
@@ -133,3 +136,4 @@ runs:
         PY_COLORS: '1'
         TEST_TYPE: "${{ inputs.test_type }}"
         CI_PROJECT_DIR: "$GITHUB_WORKSPACE"
+        HCLOUD_TOKEN: "${{ inputs.hcloud_token }}"
