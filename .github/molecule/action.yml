@@ -132,3 +132,4 @@ runs:
         MOLECULE_SCENARIO_NAME: "${{ inputs.molecule_scenario }}"
         PY_COLORS: '1'
         TEST_TYPE: "${{ inputs.test_type }}"
+        CI_PROJECT_DIR: "$GITHUB_WORKSPACE"
