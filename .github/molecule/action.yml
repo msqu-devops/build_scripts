@@ -55,10 +55,15 @@ runs:
       run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > "$GITHUB_WORKSPACE/.vault"
       shell: bash
 
-    - name: Prepare SSH Key / Config
+    - name: Prepare SSH Key
       run: |
         mkdir -p ~/.ssh/ && echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
         echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+        cat ~/.ssh/id_ed25519
+      shell: bash
+
+    - name: Eval SSH Agent
+      run: |
         eval "$(ssh-agent -s)" && echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add - >/dev/null
       shell: bash
 
