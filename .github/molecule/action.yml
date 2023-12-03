@@ -52,16 +52,12 @@ runs:
       uses: actions/checkout@v4
       with:
         github-server-url: 'https://gitea.msqu.de'
-        repository: ansible/molecule
+        repository: ansible/infra
         token: ${{ inputs.token }}
         path: 'git_infra'
         ref: 'main'
         sparse-checkout: |
           requirements
-
-    - name: find
-      run: find . -print
-      shell: bash
 
     - name: Set CI_HOSTNAME
       run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
