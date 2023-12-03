@@ -22,9 +22,6 @@ inputs:
   molecule_version:
     description: Molecule version to use, leave empty for newest
     default: ''
-  jinja2_version:
-    description: Jinaj2 version to use, leave empty for newest
-    default: ''
   ssh_key:
     description: 'SSH Key to use'
     default: 'unit'
@@ -104,7 +101,7 @@ runs:
         TEST_TYPE: "${{ inputs.test_type }}"
 
     - name: Install software for generic use case
-      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' molecule-plugins[docker] docker netaddr jmespath dnspython 'Jinja2${{ inputs.jinja2_version }}'
+      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' molecule-plugins[docker] docker netaddr jmespath dnspython python-dateutil Jinja2
       shell: bash
 
     - name: Pip list
