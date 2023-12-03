@@ -66,7 +66,7 @@ runs:
         MOLECULE_DISTRO: "${{ inputs.distro }}"
 
     - name: Set CI_PROJECT_NAME_MOLECULE
-      run: echo "CI_PROJECT_NAME_MOLECULE=$(echo $GITHUB_REPOSITORY_OWNER | tr '_' '-')" >> $GITHUB_ENV
+      run: echo "CI_PROJECT_NAME_MOLECULE=$(echo $GITHUB_REPOSITORY | awk -F / '{print $2}')" >> $GITHUB_ENV
       shell: bash
 
     - name: Prepare Ansible Vault
