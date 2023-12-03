@@ -59,6 +59,10 @@ runs:
         sparse-checkout: |
           requirements
 
+    - name: find
+      run: find . -print
+      shell: bash
+
     - name: Set CI_HOSTNAME
       run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       shell: bash
