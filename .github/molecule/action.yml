@@ -32,8 +32,11 @@ runs:
     - name: Check out the molecule repository
       uses: actions/checkout@v4
       with:
-        repository: https://gitea.msqu.de/ansible/molecule.git
+        github-server-url: 'https://gitea.msqu.de'
+        repository: ansible/molecule
+        token: ${{ secrets.ACT_RUNNER_PAT }}
         path: 'git_molecule'
+        ref: 'main'
 
     - name: Set up Python 3
       uses: actions/setup-python@v4
