@@ -1,132 +1,116 @@
 ---
-name: Reusable molecule workflow
+name: Ansible Molecule
+description: Run Ansible Molecule
+author: Michael Schmitz
 
-on:
-  workflow_call:
-    secrets:
-      ANSIBLE_VAULT_PASSWORD:
-        required: true
-      ACCESS_TOKEN:
-        required: true
+inputs:
+  ansible_version:
+    description: Ansible version to use, leave empty for newest
+    default: ''
+  distro:
+    description: 'Execute tests against distribution'
+    default: 'debian-12'
+  molecule_scenario:
+    description: Molecule scenario for testing
+    default: 'hetznercloud'
+  molecule_version:
+    description: Molecule version to use, leave empty for newest
+    default: ''
+  python_version:
+    description: Python version to use
+    default: '3.x'
+  jinja2_version:
+    description: Jinaj2 version to use, leave empty for newest
+    default: ''
+  test_type:
+    description: 'Choose between: unit|integration'
+    default: 'unit'
 
-jobs:
+runs:
+  using: "composite"
+  steps:
+    - name: Check out the molecule repository
+      uses: actions/checkout@v4
+      with:
+        repository: https://gitea.msqu.de/ansible/molecule.git
+        path: 'git_molecule'
 
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out the codebase
-        uses: actions/checkout@v3
+    - name: Set up Python 3
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python_version }}
 
-      - name: Pull Lint image
-        run: docker pull -q schmitzis/molecule:lint
+    # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md
+    - name: Uninstall preinstalled software
+      run: sudo apt-get purge -y ansible python3-jinja2
+      shell: bash
 
-      - name: ansible-lint
-        run: docker run --rm -v ${GITHUB_WORKSPACE}:/git -w /git schmitzis/molecule:lint ansible-lint -p --offline /git
+    - name: Set CI_HOSTNAME
+      run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      shell: bash
+      env:
+        MOLECULE_DISTRO: "${{ inputs.distro }}"
 
-      - name: yamllint
-        run: docker run --rm -v ${GITHUB_WORKSPACE}:/git -w /git schmitzis/molecule:lint yamllint -f parsable /git
+    - name: Set CI_PROJECT_NAME_MOLECULE
+      run: echo "CI_PROJECT_NAME_MOLECULE=$(echo $GITHUB_REPOSITORY_OWNER | tr '_' '-')" >> $GITHUB_ENV
+      shell: bash
 
-      - name: shellcheck
-        run: docker run --rm -v ${GITHUB_WORKSPACE}:/git -w /git schmitzis/molecule:lint find . -name .git -type d -prune -o -type f -name \*.sh -print0 | xargs -0 -r -n1 shellcheck
+    - name: Prepare Ansible Vault
+      run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > "$GITHUB_WORKSPACE/.vault"
+      shell: bash
 
-  molecule:
-    name: Molecule
-    runs-on: ubuntu-latest
-    needs:
-      - lint
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distro: debian-11
-            test_type: unit
-          - distro: debian-11
-            test_type: integration
-          - distro: ubuntu-22.04
-            test_type: unit
-          - distro: ubuntu-22.04
-            test_type: integration
-    steps:
-      - name: Check out the codebase
-        uses: actions/checkout@v3
+    - name: Prepare SSH Key / Config
+      run: |
+        mkdir -p ~/.ssh/ && echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+        echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+        eval "$(ssh-agent -s)" && echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add - >/dev/null
+      shell: bash
 
-      - name: Check out the molecule
-        uses: actions/checkout@v3
-        with:
-          repository: msqu-cicd/molecule
-          token: ${{ secrets.ACCESS_TOKEN }}
-          path: 'git_molecule'
+    ### test until here
+    - name: Prepare Molecule Scenario
+      run: |
+        mkdir -p ${GITHUB_WORKSPACE}/molecule/default
+        rsync -avzh --ignore-existing --ignore-errors git_molecule/scenarios/$MOLECULE_SCENARIO_NAME/ ${GITHUB_WORKSPACE}/molecule/default/
+      shell: bash
+      env:
+        MOLECULE_SCENARIO_NAME: "${{ inputs.molecule_scenario }}"
 
-      - name: Check out the infra
-        uses: actions/checkout@v3
-        with:
-          repository: msqu-cicd/infra
-          token: ${{ secrets.ACCESS_TOKEN }}
-          path: 'git_infra'
+    - name: Sync test vars
+      run: if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then mkdir -p ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/ && rsync -aP ${GITHUB_WORKSPACE}/tests/vars.yml ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/test_vars.yml; fi
+      shell: bash
+      env:
+        TEST_TYPE: "${{ inputs.test_type }}"
 
-      - name: Set up Python 3
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+    - name: Install software for generic use case
+      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' molecule-plugins[docker] docker netaddr jmespath dnspython 'Jinja2${{ inputs.jinja2_version }}'
+      shell: bash
 
-      - name: Install yq via wget
-        run: sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/bin/yq
+    - name: Pip list
+      run: pip list
+      shell: bash
 
-      - name: Set CI_PROJECT_NAME_MOLECULE
-        run: echo "CI_PROJECT_NAME_MOLECULE=$(echo $GITHUB_REPOSITORY_OWNER | tr '_' '-')" >> $GITHUB_ENV
+    - name: Install collections from collections.yml
+      if: "${{ inputs.ansible_scenario != '' }}"
+      run: ansible-galaxy install -r git_molecule/requirements/collections_${{ inputs.ansible_scenario }}.yml
+      shell: bash
 
-      - name: Prepare Ansible Vault
-        run: echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ${GITHUB_WORKSPACE}/.vault
+    - name: Print molecule version infos
+      run: molecule --version
+      shell: bash
 
-      - name: Prepare Molecule Scenario
-        run: |
-          mkdir -p ${GITHUB_WORKSPACE}/molecule/default
-          rsync -avzh --ignore-existing --ignore-errors git_molecule/$MOLECULE_SCENARIO_NAME/ ${GITHUB_WORKSPACE}/molecule/default/
-          sed -i "s,CI_PROJECT_DIR,GITHUB_WORKSPACE,g" ${GITHUB_WORKSPACE}/molecule/default/molecule.yml
-        shell: bash
-        env:
-          MOLECULE_SCENARIO_NAME: docker
+    - name: Print installed ansible collections
+      run: ansible-galaxy collection list
+      shell: bash
 
-      - name: Update Molecule inventory if tests directory does not exist
-        run: if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ ! -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then yq -i 'del(.provisioner.inventory)' ${GITHUB_WORKSPACE}/molecule/default/molecule.yml; fi
-        shell: bash
-        env:
-          TEST_TYPE: "${{ matrix.test_type }}"
-
-      - name: Sync test vars to group_vars when exists
-        run: if [[ "$TEST_TYPE" == "unit" || "$TEST_TYPE" == "destroy" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then mkdir -p ${GITHUB_WORKSPACE}/group_vars/all/ && rsync -aP ${GITHUB_WORKSPACE}/tests/ ${GITHUB_WORKSPACE}/group_vars/all/; fi
-        shell: bash
-        env:
-          TEST_TYPE: "${{ matrix.test_type }}"
-
-      - name: Prepare Molecule integration tests with infra variables
-        run: if [[ "$TEST_TYPE" == "integration" ]]; then cd git_infra && rsync -aP group_vars ${GITHUB_WORKSPACE}; fi
-        shell: bash
-        env:
-          TEST_TYPE: "${{ matrix.test_type }}"
-
-      - name: Update requirements.yml
-        run: |
-          if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,ssh://git@gitea.msqu.de:22222,https://gitea.msqu.de,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
-          if [ -f "${GITHUB_WORKSPACE}/requirements.yml" ]; then sed -i "s,git@github.com:,https://github.com/,g" ${GITHUB_WORKSPACE}/requirements.yml; fi
-        shell: bash
-
-      - name: Install test dependencies
-        run: pip install ansible ansible-lint molecule[docker] docker netaddr jmespath
-
-      - name: Print molecule version infos
-        run: molecule --version
-        shell: bash
-
-      - name: Run Molecule tests
-        run: molecule test
-        shell: bash
-        env:
-          ANSIBLE_FORCE_COLOR: '1'
-          ANSIBLE_VERBOSITY: '2'
-          MOLECULE_DEBUG: '1'
-          MOLECULE_DISTRO: "${{ matrix.distro }}"
-          MOLECULE_SCENARIO_NAME: docker
-          PY_COLORS: '1'
-          TEST_TYPE: "${{ matrix.test_type }}"
+    - name: Run Molecule tests
+      run: molecule test
+      shell: bash
+      env:
+        ANSIBLE_FORCE_COLOR: '1'
+        ANSIBLE_VERBOSITY: '2'
+        CI_JOB_ID: "${{ github.run_id }}"
+        MOLECULE_DEBUG: '1'
+        MOLECULE_DISTRO: "${{ inputs.distro }}"
+        MOLECULE_SCENARIO_NAME: "${{ inputs.molecule_scenario }}"
+        PY_COLORS: '1'
+        TEST_TYPE: "${{ inputs.test_type }}"
