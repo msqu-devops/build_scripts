@@ -37,6 +37,7 @@ runs:
   steps:
     - name: Install rsync
       run: apt update && apt-get -qq -o Dpkg::Use-Pty=0 install rsync
+      shell: bash
 
     - name: Check out the molecule repository
       uses: actions/checkout@v4
