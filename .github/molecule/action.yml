@@ -62,7 +62,7 @@ runs:
     - name: Set CI_HOSTNAME / CI_PROJECT_NAME_MOLECULE
       run: |
         echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-        echo "CI_PROJECT_NAME_MOLECULE=$(echo ${GITHUB_REPOSITORY_OWNER#*/} | tr '/' '-')" >> $GITHUB_ENV
+        echo "CI_PROJECT_NAME_MOLECULE=$(echo ${GITHUB_REPOSITORY#*/} | tr '/' '-')" >> $GITHUB_ENV
       shell: bash
       env:
         MOLECULE_DISTRO: "${{ inputs.distro }}"
