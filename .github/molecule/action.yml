@@ -59,15 +59,13 @@ runs:
         sparse-checkout: |
           requirements
 
-    - name: Set CI_HOSTNAME
-      run: echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+    - name: Set CI_HOSTNAME / CI_PROJECT_NAME_MOLECULE
+      run: |
+        echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        echo "CI_PROJECT_NAME_MOLECULE=$(echo ${GITHUB_REPOSITORY_OWNER#*/} | tr '/' '-')" >> $GITHUB_ENV
       shell: bash
       env:
         MOLECULE_DISTRO: "${{ inputs.distro }}"
-
-    - name: Set CI_PROJECT_NAME_MOLECULE
-      run: echo "CI_PROJECT_NAME_MOLECULE=$(echo $GITHUB_REPOSITORY | awk -F / '{print $2}')" >> $GITHUB_ENV
-      shell: bash
 
     - name: Prepare Ansible Vault
       run: echo "${{ inputs.ansible_vault_password }}" > "$GITHUB_WORKSPACE/.vault"
@@ -77,11 +75,6 @@ runs:
       run: |
         mkdir -p ~/.ssh/ && echo "${{ inputs.ssh_key }}" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
         echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
-        cat ~/.ssh/id_ed25519
-      shell: bash
-
-    - name: Eval SSH Agent
-      run: |
         eval "$(ssh-agent -s)" && echo "${{ inputs.ssh_key }}" | tr -d '\r' | ssh-add - >/dev/null
       shell: bash
 
