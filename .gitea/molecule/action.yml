@@ -1,0 +1,132 @@
+---
+name: Ansible Molecule
+description: Run Ansible Molecule
+author: Michael Schmitz
+
+inputs:
+  ansible_version:
+    description: Ansible version to use, leave empty for newest
+    default: ''
+  ansible_vault_password:
+    description: Ansible Vault Password
+    default: ''
+  distro:
+    description: 'Execute tests against distribution'
+    default: 'debian-12'
+  hcloud_token:
+    description: 'Hetzner API Token'
+    default: ''
+  hcloud_server_state:
+    description: 'Server State after Molecule run'
+    default: 'absent'
+  molecule_scenario:
+    description: Molecule scenario for testing
+    default: 'hetznercloud'
+  molecule_version:
+    description: Molecule version to use, leave empty for newest
+    default: ''
+  ssh_key:
+    description: 'SSH Key to use'
+    default: 'unit'
+  test_type:
+    description: 'Choose between: unit|integration'
+    default: 'unit'
+  token:
+    description: 'Gitea Runner token'
+    default: 'unit'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install rsync
+      run: apt-get update -qq -o=Dpkg::Use-Pty=0 && apt-get -qq -o Dpkg::Use-Pty=0 install rsync
+      shell: bash
+
+    - name: Check out the molecule repository
+      uses: actions/checkout@v4
+      with:
+        github-server-url: 'https://gitea.msqu.de'
+        repository: ansible/molecule
+        token: ${{ inputs.token }}
+        path: 'git_molecule'
+        ref: 'main'
+
+    - name: Check out the infra repository
+      uses: actions/checkout@v4
+      with:
+        github-server-url: 'https://gitea.msqu.de'
+        repository: ansible/infra
+        token: ${{ inputs.token }}
+        path: 'git_infra'
+        ref: 'main'
+        sparse-checkout: |
+          requirements
+
+    - name: Set CI_HOSTNAME / CI_PROJECT_NAME_MOLECULE
+      run: |
+        echo "CI_HOSTNAME=$(echo $MOLECULE_DISTRO | tr -dc '[:alnum:]\n\r' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        echo "CI_PROJECT_NAME_MOLECULE=$(echo ${GITHUB_REPOSITORY#*/} | tr '_' '-')" >> $GITHUB_ENV
+      shell: bash
+      env:
+        MOLECULE_DISTRO: "${{ inputs.distro }}"
+
+    - name: Prepare Ansible Vault
+      run: echo "${{ inputs.ansible_vault_password }}" > "$GITHUB_WORKSPACE/.vault"
+      shell: bash
+
+    - name: Prepare SSH Key
+      run: |
+        mkdir -p ~/.ssh/ && echo "${{ inputs.ssh_key }}" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+        echo -e "Host *\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+        eval "$(ssh-agent -s)" && echo "${{ inputs.ssh_key }}" | tr -d '\r' | ssh-add - >/dev/null
+      shell: bash
+
+    - name: Prepare Molecule Scenario
+      run: |
+        mkdir -p ${GITHUB_WORKSPACE}/molecule/default
+        rsync -avzh --ignore-existing --ignore-errors git_molecule/$MOLECULE_SCENARIO_NAME/ ${GITHUB_WORKSPACE}/molecule/default/
+      shell: bash
+      env:
+        MOLECULE_SCENARIO_NAME: "${{ inputs.molecule_scenario }}"
+
+    - name: Sync test vars
+      run: if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then mkdir -p ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/ && rsync -aP ${GITHUB_WORKSPACE}/tests/vars.yml ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/test_vars.yml; fi
+      shell: bash
+      env:
+        TEST_TYPE: "${{ inputs.test_type }}"
+
+    - name: Install software for generic use case
+      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' netaddr jmespath dnspython python-dateutil Jinja2
+      shell: bash
+
+    - name: Pip list
+      run: pip list
+      shell: bash
+
+    - name: Install collections from collections.yml
+      run: ansible-galaxy install -r git_infra/requirements/collections_git.yml
+      shell: bash
+
+    - name: Print molecule version infos
+      run: molecule --version
+      shell: bash
+
+    - name: Print installed ansible collections
+      run: ansible-galaxy collection list
+      shell: bash
+
+    - name: Run Molecule tests
+      run: molecule test
+      shell: bash
+      env:
+        ANSIBLE_FORCE_COLOR: '1'
+        ANSIBLE_VERBOSITY: '2'
+        CI_JOB_ID: "${{ github.run_id }}"
+        MOLECULE_DEBUG: '1'
+        MOLECULE_DISTRO: "${{ inputs.distro }}"
+        MOLECULE_SCENARIO_NAME: "${{ inputs.molecule_scenario }}"
+        PY_COLORS: '1'
+        TEST_TYPE: "${{ inputs.test_type }}"
+        CI_PROJECT_DIR: "$GITHUB_WORKSPACE"
+        HCLOUD_TOKEN: "${{ inputs.hcloud_token }}"
+        HCLOUD_SERVER_STATE: "${{ inputs.hcloud_server_state }}"
