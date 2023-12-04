@@ -96,7 +96,7 @@ runs:
         TEST_TYPE: "${{ inputs.test_type }}"
 
     - name: Install software for generic use case
-      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' netaddr jmespath dnspython python-dateutil Jinja2
+      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' netaddr jmespath dnspython python-dateutil Jinja2 requests
       shell: bash
 
     - name: Pip list
