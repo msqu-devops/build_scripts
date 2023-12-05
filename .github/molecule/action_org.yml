@@ -35,10 +35,13 @@ inputs:
     description: 'Choose between: unit|integration'
     default: 'unit'
 
-# https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
 runs:
   using: "composite"
   steps:
+    - name: Install rsync
+      run: sudo apt-get update -qq -o=Dpkg::Use-Pty=0 && sudo apt-get -qq -o Dpkg::Use-Pty=0 install rsync
+      shell: bash
+
     - name: Check out the molecule repository
       uses: actions/checkout@v4
       with:
@@ -58,7 +61,11 @@ runs:
         show-progress: 'false'
         sparse-checkout: |
           requirements
-          group_vars
+
+    # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md
+    - name: Uninstall preinstalled software
+      run: sudo apt-get -y -qq purge -o Dpkg::Progress-Fancy="0" -o APT::Color="0" -o Dpkg::Use-Pty="0" ansible python3-jinja2
+      shell: bash
 
     - name: Set CI_HOSTNAME / CI_PROJECT_NAME_MOLECULE
       run: |
@@ -79,27 +86,23 @@ runs:
         eval "$(ssh-agent -s)" && echo "${{ inputs.ssh_key }}" | tr -d '\r' | ssh-add - >/dev/null
       shell: bash
 
+    ### test until here
     - name: Prepare Molecule Scenario
       run: |
         mkdir -p ${GITHUB_WORKSPACE}/molecule/default
-        rsync -avzh --ignore-existing --ignore-errors ${GITHUB_WORKSPACE}/git_molecule/$MOLECULE_SCENARIO_NAME/ ${GITHUB_WORKSPACE}/molecule/default/
+        rsync -avzh --ignore-existing --ignore-errors git_molecule/$MOLECULE_SCENARIO_NAME/ ${GITHUB_WORKSPACE}/molecule/default/
       shell: bash
       env:
         MOLECULE_SCENARIO_NAME: "${{ inputs.molecule_scenario }}"
 
-    - name: Sync vars
-      run: |
-        if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then
-          mkdir -p ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/ && rsync -aP ${GITHUB_WORKSPACE}/tests/vars.yml ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/test_vars.yml
-        elif [[ "$TEST_TYPE" == "integration" ]]; then
-          rsync -aP ${GITHUB_WORKSPACE}/git_infra/group_vars ${GITHUB_WORKSPACE}/molecule/default/
-        fi
+    - name: Sync test vars
+      run: if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then mkdir -p ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/ && rsync -aP ${GITHUB_WORKSPACE}/tests/vars.yml ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/test_vars.yml; fi
       shell: bash
       env:
         TEST_TYPE: "${{ inputs.test_type }}"
 
     - name: Install software for generic use case
-      run: pip install 'molecule${{ inputs.molecule_version }}' molecule-plugins[docker] docker netaddr jmespath dnspython python-dateutil --quiet
+      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' molecule-plugins[docker] docker netaddr jmespath dnspython python-dateutil Jinja2 --quiet
       shell: bash
 
     - name: Pip list
@@ -107,8 +110,8 @@ runs:
       run: pip list
       shell: bash
 
-    - name: Install collections from collections_git.yml
-      run: ansible-galaxy install -r git_infra/requirements/collections_git.yml
+    - name: Install collections from collections.yml
+      run: ansible-galaxy install -r git_infra/requirements/collections.yml
       shell: bash
 
     - name: Print molecule version infos
@@ -120,12 +123,6 @@ runs:
       if: runner.debug == '1'
       run: ansible-galaxy collection list
       shell: bash
-
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: runner.debug == '1'
-      with:
-        detached: true
 
     - name: Run Molecule tests
       run: molecule test

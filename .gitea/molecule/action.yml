@@ -43,24 +43,27 @@ runs:
       shell: bash
 
     - name: Check out the molecule repository
-      uses: actions/checkout@v4
+      uses: https://github.com/actions/checkout@v4
       with:
         github-server-url: 'https://gitea.msqu.de'
         repository: ansible/molecule
         token: ${{ inputs.token }}
         path: 'git_molecule'
         ref: 'main'
+        show-progress: 'false'
 
     - name: Check out the infra repository
-      uses: actions/checkout@v4
+      uses: https://github.com/actions/checkout@v4
       with:
         github-server-url: 'https://gitea.msqu.de'
         repository: ansible/infra
         token: ${{ inputs.token }}
         path: 'git_infra'
         ref: 'main'
+        show-progress: 'false'
         sparse-checkout: |
           requirements
+          group_vars
 
     - name: Set CI_HOSTNAME / CI_PROJECT_NAME_MOLECULE
       run: |
@@ -89,17 +92,23 @@ runs:
       env:
         MOLECULE_SCENARIO_NAME: "${{ inputs.molecule_scenario }}"
 
-    - name: Sync test vars
-      run: if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then mkdir -p ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/ && rsync -aP ${GITHUB_WORKSPACE}/tests/vars.yml ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/test_vars.yml; fi
+    - name: Sync vars
+      run: |
+        if [[ "$TEST_TYPE" == "unit" ]] && [[ -f "${GITHUB_WORKSPACE}/tests/vars.yml" ]]; then
+          mkdir -p ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/ && rsync -aP ${GITHUB_WORKSPACE}/tests/vars.yml ${GITHUB_WORKSPACE}/molecule/default/group_vars/all/test_vars.yml
+        elif [[ "$TEST_TYPE" == "integration" ]]; then
+          rsync -aP git_infra/group_vars ${GITHUB_WORKSPACE}/molecule/default/
+        fi
       shell: bash
       env:
         TEST_TYPE: "${{ inputs.test_type }}"
 
     - name: Install software for generic use case
-      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' netaddr jmespath dnspython python-dateutil Jinja2 requests
+      run: pip install 'ansible-core${{ inputs.ansible_version }}' 'molecule${{ inputs.molecule_version }}' netaddr jmespath dnspython python-dateutil Jinja2 requests --quiet
       shell: bash
 
     - name: Pip list
+      if: runner.debug == '1'
       run: pip list
       shell: bash
 
@@ -108,12 +117,20 @@ runs:
       shell: bash
 
     - name: Print molecule version infos
+      if: runner.debug == '1'
       run: molecule --version
       shell: bash
 
     - name: Print installed ansible collections
+      if: runner.debug == '1'
       run: ansible-galaxy collection list
       shell: bash
+
+    - name: Setup tmate session
+      if: runner.debug == '1'
+      uses: mxschmitt/action-tmate@v3
+      with:
+        detached: true
 
     - name: Run Molecule tests
       run: molecule test
